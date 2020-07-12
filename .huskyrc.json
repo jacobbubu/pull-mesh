@@ -1,0 +1,7 @@
+{
+  "hooks": {
+    "pre-commit": "npm run precommit",
+    "commit-msg": "validate-commit-msg",
+    "pre-push": "npm run test:prod && npm run build"
+  }
+}

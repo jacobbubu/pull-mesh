@@ -1,0 +1,122 @@
+{
+  "name": "@jacobbubu/pull-mesh",
+  "version": "0.0.0",
+  "description": "",
+  "keywords": [],
+  "main": "dist/index.js",
+  "typings": "dist/types/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "author": "jacobbubu <rong.shen@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jacobbubu/pull-mesh.git"
+  },
+  "license": "MIT",
+  "engines": {
+    "node": ">=6.0.0"
+  },
+  "scripts": {
+    "lint": "tslint -t codeFrame --project tsconfig.json 'src/**/*.ts' 'test/**/*.ts'",
+    "prebuild": "rimraf dist",
+    "build": "tsc --project tsconfig.build.json",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:prod": "npm run lint && npm run test -- --coverage --no-cache",
+    "report-coverage": "cat ./coverage/lcov.info | coveralls",
+    "commit": "git-cz",
+    "precommit": "lint-staged",
+    "example:two-nodes": "DEBUG_NAME_WIDTH=20 DEBUG='mesh:B*' tsnd --respawn examples/two-nodes.ts",
+    "example:three-nodes": "DEBUG_NAME_WIDTH=20 DEBUG='mesh:B*' tsnd --respawn examples/three-nodes.ts",
+    "example:model": "DEBUG_NAME_WIDTH=20 DEBUG='mesh*,sb*' tsnd --respawn examples/model.ts"
+  },
+  "lint-staged": {
+    "{src,test}/**/*.ts": [
+      "prettier --write"
+    ]
+  },
+  "config": {
+    "commitizen": {
+      "path": "node_modules/cz-conventional-changelog"
+    },
+    "validate-commit-msg": {
+      "types": "conventional-commit-types",
+      "helpMessage": "Use \"npm run commit\" instead, we use conventional-changelog format :) (https://github.com/commitizen/cz-cli)"
+    }
+  },
+  "jest": {
+    "transform": {
+      ".(ts|tsx)": "ts-jest"
+    },
+    "testRegex": "(/__tests__/.*|\\.(test|spec))\\.(ts|tsx|js)$",
+    "moduleFileExtensions": [
+      "ts",
+      "tsx",
+      "js"
+    ],
+    "coveragePathIgnorePatterns": [
+      "/node_modules/",
+      "/test/",
+      "/tools/"
+    ],
+    "coverageThreshold": {
+      "global": {
+        "branches": 50,
+        "functions": 50,
+        "lines": 50,
+        "statements": 50
+      }
+    },
+    "collectCoverage": true
+  },
+  "prettier": {
+    "semi": false,
+    "singleQuote": true
+  },
+  "devDependencies": {
+    "@jacobbubu/pull-plex": "^1.6.0",
+    "@jacobbubu/pull-stream-types": "^1.1.0",
+    "@jacobbubu/scuttlebutt-pull": "^1.6.9",
+    "@types/jest": "^25.2.1",
+    "@types/node": "^13.11.0",
+    "@types/rc": "^1.1.0",
+    "@types/shelljs": "^0.8.8",
+    "colors": "^1.4.0",
+    "commitizen": "^4.0.3",
+    "coveralls": "^3.0.11",
+    "cross-env": "^7.0.2",
+    "cz-conventional-changelog": "^3.1.0",
+    "enquirer": "^2.3.4",
+    "husky": "^4.2.3",
+    "is-scoped": "^2.1.0",
+    "jest": "^25.2.7",
+    "lint-staged": "^10.1.1",
+    "lodash.camelcase": "^4.3.0",
+    "npm-name": "^6.0.0",
+    "prettier": "^2.0.2",
+    "prompt": "^1.0.0",
+    "pull-stream": "^3.6.14",
+    "replace-in-file": "^5.0.2",
+    "rimraf": "^3.0.2",
+    "shelljs": "^0.8.4",
+    "ts-jest": "^25.3.1",
+    "ts-node": "^8.8.1",
+    "ts-node-dev": "^1.0.0-pre.44",
+    "tslint": "^6.1.1",
+    "tslint-config-prettier": "^1.18.0",
+    "tslint-config-standard": "^9.0.0",
+    "typescript": "^3.8.3",
+    "validate-commit-msg": "^2.14.0",
+    "validate-npm-package-name": "^3.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@jacobbubu/debug": "^1.2.0",
+    "@jacobbubu/pull-many": "^1.1.0",
+    "@jacobbubu/pull-pushable": "^1.2.2",
+    "short-unique-id": "^3.0.3"
+  }
+}

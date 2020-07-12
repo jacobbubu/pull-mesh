@@ -1,0 +1,36 @@
+import * as pull from 'pull-stream'
+import { Model } from '@jacobbubu/scuttlebutt-pull'
+import { MeshNode } from '../src'
+
+const modelOne = new Model('One')
+const modelTwo = new Model('Two')
+
+modelOne.set('foo', 'bar')
+
+const nodeA = new MeshNode('A')
+
+const nodeB = new MeshNode((_, destURI) => {
+  if (destURI === 'Two') {
+    const sTwo = modelTwo.createStream({ wrapper: 'raw' })
+    sTwo.on('synced', () => {
+      console.log('foo@Two:', modelTwo.get('foo'))
+    })
+    return {
+      stream: sTwo,
+    }
+  }
+}, 'B')
+
+const a2b = nodeA.createRelayStream('A->B')
+const b2a = nodeB.createRelayStream('B->A')
+pull(a2b, b2a, a2b)
+
+const portOne = nodeA.createPortStream('One', 'Two')
+const sOne = modelOne.createStream({ wrapper: 'raw' })
+pull(portOne, sOne, portOne)
+
+modelTwo.set('bar', 'foo')
+
+sOne.on('synced', () => {
+  console.log('bar@One:', modelTwo.get('bar'))
+})
