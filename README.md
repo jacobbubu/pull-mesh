@@ -21,16 +21,16 @@
 
 `portStream` 可以在 `meshNode` 事先创建好，也可以通过 `meshNode` 在构造时传入的 `onOpenPort` 回调函数来创建。[两节点直连](./examples/two-nodes.ts) 演示了这种用法。
 
-`meshNode` 之间会创建 `relayStream`。`relayStream` 负责将两个 `meshNode` 连接，它也仅仅负责这件事，对所要传播的 `message` 的语义是不关心的。
+`meshNode` 之间会创建 `relayStream`。`relayStream` 负责将两个 `meshNode` 连接，它也仅仅负责这件事，对所要传播的 `message` 的语义并不关心。
 
 还有两个例子演示了更复杂一些的用法:
-* [同步 scuttlebutt 数据结构]](./examples/model.ts): 这个例子演示了如何在两个节点间同步 scuttlebutt model
-* [三节点同步]](./examples/three-nodes.ts): 顾名思义，从两节点变成三节点
+* [同步 scuttlebutt 数据结构](./examples/model.ts): 这个例子演示了如何在两个节点间同步 scuttlebutt model。
+* [三节点同步](./examples/three-nodes.ts): 顾名思义，从两节点变成三节点。
 
 ### 节点间消息是如何传播的
 
-每个消息都有一个全网唯一的 id。`meshNode` 在收到消息后，首先会发给所有它所拥有的的 `portStream`，如果没有一个 `portStream` 能处理，则逐一发给它的 `relayStream`。这些 `relayStream` 将把消息传递给其他 `meshNode`，继而重复上述步骤。为了避免消息在 `meshNode` 之间重复传递，每个 `relayStream` 确保在一段时间内仅仅传输一次，重复收到的消息将被丢弃。
+每个消息都有一个全网唯一的 id。`meshNode` 在收到消息后，首先会发给所有它所拥有的的 `portStream`，如果没有一个 `portStream` 能处理，则逐一发给它的 `relayStream`。这些 `relayStream` 将把消息传递给其他 `meshNode`，继而重复上述步骤。为了避免消息在 `meshNode` 之间重复传递，每个 `relayStream` 确保在一段时间内具有相同 `id` 的消息仅仅传输一次，重复收到的消息将被丢弃。
 
 ## 注意
 
-改模块目前仅仅出于验证概念阶段，大量的测试用例和连通检测功能还有待完善。
+该模块目前仅仅出于验证概念阶段，大量的测试用例和连通检测功能还有待完善。
