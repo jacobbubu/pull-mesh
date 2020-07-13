@@ -27,8 +27,8 @@
     "report-coverage": "cat ./coverage/lcov.info | coveralls",
     "commit": "git-cz",
     "precommit": "lint-staged",
-    "example:two-nodes": "DEBUG_NAME_WIDTH=20 DEBUG='mesh:B*' tsnd --respawn examples/two-nodes.ts",
-    "example:three-nodes": "DEBUG_NAME_WIDTH=20 DEBUG='mesh:B*' tsnd --respawn examples/three-nodes.ts",
+    "example:two-nodes": "DEBUG_NAME_WIDTH=20 DEBUG='mesh*' tsnd --respawn examples/two-nodes.ts",
+    "example:three-nodes": "DEBUG_NAME_WIDTH=20 DEBUG='mesh*' tsnd --respawn examples/three-nodes.ts",
     "example:model": "DEBUG_NAME_WIDTH=20 DEBUG='mesh*,sb*' tsnd --respawn examples/model.ts"
   },
   "lint-staged": {

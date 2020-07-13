@@ -15,6 +15,7 @@ export enum MeshDataIndex {
   OpenAbort = 4,
   ReqDest = 2,
   ReqAbort = 3,
+  PingDest = 2,
 }
 
 export enum MeshDataCmd {
@@ -34,7 +35,7 @@ export type MeshCmdOpen = [Id, MeshDataCmd.Open, SourceURI, DestURI, pull.Abort]
 export type MeshCmdRequest = [Id, MeshDataCmd.Req, DestURI, pull.Abort]
 export type MeshCmdResponse = [Id, MeshDataCmd.Res, ReplyId, any[]]
 export type MeshCmdEnd = [Id, MeshDataCmd.End, ReplyId, pull.EndOrError]
-export type MeshCmdPing = [Id, MeshDataCmd.Ping]
+export type MeshCmdPing = [Id, MeshDataCmd.Ping, DestURI]
 export type MeshData = MeshCmdOpen | MeshCmdRequest | MeshCmdResponse | MeshCmdEnd | MeshCmdPing
 
 export interface OpenPortResult {

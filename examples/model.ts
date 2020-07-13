@@ -2,6 +2,8 @@ import * as pull from 'pull-stream'
 import { Model } from '@jacobbubu/scuttlebutt-pull'
 import { MeshNode } from '../src'
 
+const PortOpts = { pingInterval: 20e3, connectionTimeout: 30e3 }
+
 const modelOne = new Model('One')
 const modelTwo = new Model('Two')
 
@@ -17,6 +19,7 @@ const nodeB = new MeshNode((_, destURI) => {
     })
     return {
       stream: sTwo,
+      portOpts: PortOpts,
     }
   }
 }, 'B')
@@ -25,7 +28,7 @@ const a2b = nodeA.createRelayStream('A->B')
 const b2a = nodeB.createRelayStream('B->A')
 pull(a2b, b2a, a2b)
 
-const portOne = nodeA.createPortStream('One', 'Two')
+const portOne = nodeA.createPortStream('One', 'Two', PortOpts)
 const sOne = modelOne.createStream({ wrapper: 'raw' })
 pull(portOne, sOne, portOne)
 

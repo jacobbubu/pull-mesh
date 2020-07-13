@@ -56,8 +56,8 @@ export class PortStream<T> extends MeshStream<T> {
   ) {
     super()
     this._node = node
-    this._pingInterval = opts.pingInterval ?? 2e3
-    this._connectionTimeout = opts.connectionTimeout ?? 5e3
+    this._pingInterval = opts.pingInterval ?? 20e3
+    this._connectionTimeout = opts.connectionTimeout ?? 30e3
 
     this._hashedSource = hashedURI(this._sourceURI)
     this._hashedDest = hashedURI(this._destURI)
@@ -68,9 +68,13 @@ export class PortStream<T> extends MeshStream<T> {
 
     this._sendTouch = new TouchMan(() => {
       this._logger.debug('ping')
-      // this.postToMesh(this.createPingMessage())
+      this.postToMesh(this.createPingMessage())
     }, this._pingInterval)
+
     this._recvTouch = new TouchMan(() => {
+      this._logger.debug('connection timed-out')
+      this._sendTouch.stop()
+      this._recvTouch.stop()
       const end = new Error(`readMesh exceeds read timeout`)
       this.abortAllReadMesh(end)
       this._sinkMan.abort(end)
@@ -114,9 +118,13 @@ export class PortStream<T> extends MeshStream<T> {
     return [uid(), MeshDataCmd.Res, replyTo, dataList]
   }
 
+  createPingMessage(): MeshCmdPing {
+    return [uid(), MeshDataCmd.Ping, this._hashedDest]
+  }
+
   postToMesh(message: MeshData) {
     this._logger.debug('post to mesh: %4O', message)
-    // this._sendTouch.touch()
+    this._sendTouch.touch()
     this._node.portPost(message)
   }
 
@@ -179,7 +187,6 @@ export class PortStream<T> extends MeshStream<T> {
     let abort
     let matched
 
-    const self = this
     switch (message[MeshDataIndex.Cmd]) {
       case MeshDataCmd.Open:
       case MeshDataCmd.Req:
@@ -198,10 +205,11 @@ export class PortStream<T> extends MeshStream<T> {
 
         if (matched) {
           this._logger.debug('recv readMesh: cmd(%s) %4O', cmd, message)
-          this._recvTouch.touch()
           replyTo = req[MeshDataIndex.Id]
           if (abort) {
             this._sinkMan.abort(abort)
+          } else {
+            this._recvTouch.touch()
           }
           this._sinkMan.addReadMesh({ replyTo })
           processed = true
@@ -209,7 +217,7 @@ export class PortStream<T> extends MeshStream<T> {
         break
       case MeshDataCmd.Res:
         replyTo = (message as MeshCmdResponse)[MeshDataIndex.ReplyTo]
-        readMesh = self._readMeshMap[replyTo]
+        readMesh = this._readMeshMap[replyTo]
         if (readMesh) {
           this._logger.debug('recv response: %4O', message)
           this._recvTouch.touch()
@@ -219,11 +227,18 @@ export class PortStream<T> extends MeshStream<T> {
         break
       case MeshDataCmd.End:
         replyTo = (message as MeshCmdEnd)[MeshDataIndex.ReplyTo]
-        readMesh = self._readMeshMap[replyTo]
+        readMesh = this._readMeshMap[replyTo]
         if (readMesh) {
           this._logger.debug('recv end: %4O', message)
-          this._recvTouch.touch()
           readMesh.end(message)
+          processed = true
+        }
+        break
+      case MeshDataCmd.Ping:
+        destURI = message[MeshDataIndex.PingDest]
+        if (destURI === this._hashedSource) {
+          this._logger.debug('recv ping')
+          this._recvTouch.touch()
           processed = true
         }
         break
@@ -235,8 +250,8 @@ export class PortStream<T> extends MeshStream<T> {
 
   private abortAllReadMesh(abort: pull.Abort) {
     const keys = Object.keys(this._readMeshMap)
-    for (let i = 0; i < keys.length; i++) {
-      const readMesh = this._readMeshMap[keys[i]]
+    for (let key in this._readMeshMap) {
+      const readMesh = this._readMeshMap[key]
       readMesh.abort(abort)
     }
   }
