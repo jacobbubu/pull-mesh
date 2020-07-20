@@ -57,7 +57,7 @@ export class RelayStream extends MeshStream<MeshData> {
           const id = message[MeshDataIndex.Id]
           if (!dup.check(id)) {
             dup.track(id)
-            self._node.relayBroadcast(message, self)
+            self._node.broadcast(message, self)
           } else {
             self._logger.log('ignore duplicated message', message)
           }

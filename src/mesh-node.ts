@@ -1,7 +1,7 @@
 import * as pull from 'pull-stream'
 import { Dup } from './dup'
 import { uid3 } from './utils'
-import { RelayStream, PortStream, PortStreamOptions } from './mesh-stream'
+import { RelayStream, PortStream, PortStreamOptions, MeshStream } from './mesh-stream'
 import { Debug } from '@jacobbubu/debug'
 
 export enum MeshDataIndex {
@@ -37,6 +37,10 @@ export type MeshCmdResponse = [Id, MeshDataCmd.Res, ReplyId, any[]]
 export type MeshCmdEnd = [Id, MeshDataCmd.End, ReplyId, pull.EndOrError]
 export type MeshCmdPing = [Id, MeshDataCmd.Ping, DestURI]
 export type MeshData = MeshCmdOpen | MeshCmdRequest | MeshCmdResponse | MeshCmdEnd | MeshCmdPing
+
+function isOpenMessage(message: MeshData) {
+  return message[MeshDataIndex.Cmd] === MeshDataCmd.Open
+}
 
 export interface OpenPortResult {
   stream: pull.Duplex<any, any>
@@ -90,26 +94,14 @@ export class MeshNode {
     return stream
   }
 
-  portPost(message: MeshData) {
-    this.portBroadcast(message)
-  }
-
-  portBroadcast(message: MeshData) {
-    this._relayStreams.forEach((stream) => {
-      stream.forward(message)
-    })
-  }
-
-  relayBroadcast(message: MeshData, source: RelayStream) {
-    const isOpenMessage = message[MeshDataIndex.Cmd] === MeshDataCmd.Open
-
-    if (isOpenMessage && this._onOpenPort) {
+  broadcast(message: MeshData, source: MeshStream<any>) {
+    if (isOpenMessage(message) && this._onOpenPort) {
       this.openPort(message as MeshCmdOpen)
     }
 
     for (let i = 0; i < this._portStreams.length; i++) {
-      // message has processed by a port
-      if (this._portStreams[i].process(message)) {
+      const stream = this._portStreams[i]
+      if (stream !== source && this._portStreams[i].process(message)) {
         return
       }
     }

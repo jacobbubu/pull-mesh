@@ -11,7 +11,32 @@ const createDuplex = (values: any[], cb: (err: pull.EndOrError, data: any) => vo
 }
 
 describe('basic', () => {
-  it('simple', (done) => {
+  it('onw node', (done) => {
+    let count = 2
+    const duplexOne = createDuplex([1, 2, 3], (err, results) => {
+      expect(err).toBeFalsy()
+      expect(results).toEqual(['a', 'b', 'c'])
+      if (--count === 0) done()
+    })
+
+    const node = new MeshNode((_, destURI) => {
+      if (destURI === 'Two') {
+        const duplexTwo = createDuplex(['a', 'b', 'c'], (err, results) => {
+          expect(err).toBeFalsy()
+          expect(results).toEqual([1, 2, 3])
+          if (--count === 0) done()
+        })
+        return {
+          stream: duplexTwo,
+        }
+      }
+    }, 'A')
+
+    const portNum = node.createPortStream('One', 'Two')
+    pull(portNum, duplexOne, portNum)
+  })
+
+  it('two nodes', (done) => {
     let count = 2
     const duplexOne = createDuplex([1, 2, 3], (err, results) => {
       expect(err).toBeFalsy()

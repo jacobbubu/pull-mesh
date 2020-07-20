@@ -125,7 +125,7 @@ export class PortStream<T> extends MeshStream<T> {
   postToMesh(message: MeshData) {
     this._logger.debug('post to mesh: %4O', message)
     this._sendTouch.touch()
-    this._node.portPost(message)
+    this._node.broadcast(message, this)
   }
 
   get source() {
