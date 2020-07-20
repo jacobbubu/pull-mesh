@@ -75,19 +75,24 @@ export class SinkMan<T> {
     return this._port.logger
   }
 
+  private _collected: boolean = true
+  private _readBuffer: T[] = []
   // calling by sink
   private read(abort: pull.Abort) {
-    if (this._rawRead && !this._reading) {
+    if (this._rawRead && !this._reading && this._collected) {
       // use this._reading to prevent reentering
-      this._reading = true
+      this._collected = false
 
-      let dataList: T[] = []
+      let dataList: T[] = [...this._readBuffer]
+      this._readBuffer = []
+
       let timer: NodeJS.Timeout | null = null
 
       const rawRead = this._rawRead
       const self = this
 
       const collect = () => {
+        self._collected = true
         if (timer) {
           clearTimeout(timer)
           timer = null
@@ -99,11 +104,16 @@ export class SinkMan<T> {
       }
 
       rawRead(abort, function next(endOrError, data) {
+        self._reading = false
         if (endOrError) {
           collect()
           self._buffer.push([endOrError, null])
-          self._reading = false
           self.drain()
+          return
+        }
+
+        if (self._collected) {
+          self._readBuffer.push(data!)
           return
         }
 
@@ -113,19 +123,18 @@ export class SinkMan<T> {
         if (!timer) {
           timer = setTimeout(() => {
             collect()
-            self._reading = false
             self.drain()
           }, self._windowTime)
         }
 
         if (dataList.length >= self._limit) {
           collect()
-          self._reading = false
           self.drain()
           return
         }
 
-        if (self._reading) {
+        if (!self._collected) {
+          self._reading = true
           rawRead(abort, next)
         }
       })
