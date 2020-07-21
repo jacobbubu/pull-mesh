@@ -113,21 +113,19 @@ export class SinkMan<T> {
         if (!timer) {
           timer = setTimeout(() => {
             collect()
-            self._reading = false
             self.drain()
           }, self._windowTime)
         }
 
-        if (dataList.length >= self._limit) {
+        // stop the rawRead loop when the previous _buffer has not been read
+        if (dataList.length >= self._limit || self._buffer.length > 0) {
           collect()
           self._reading = false
           self.drain()
           return
         }
 
-        if (self._reading) {
-          rawRead(abort, next)
-        }
+        rawRead(abort, next)
       })
     }
   }
