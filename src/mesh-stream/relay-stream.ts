@@ -88,6 +88,10 @@ export class RelayStream extends MeshStream<MeshData> {
     return this._priority
   }
 
+  get filter() {
+    return this._filter
+  }
+
   get source() {
     if (!this._source) {
       this._source = pushable(() => {

@@ -149,7 +149,13 @@ export class MeshNode {
 
     this._relayStreams.forEach((stream) => {
       if (stream !== source) {
-        stream.forward(message)
+        if (stream.filter) {
+          if (stream.filter(message)) {
+            stream.forward(message)
+          }
+        } else {
+          stream.forward(message)
+        }
       }
     })
   }

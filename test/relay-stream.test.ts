@@ -1,5 +1,5 @@
 import * as pull from 'pull-stream'
-import { MeshNode } from '../src'
+import { MeshNode, MeshDataIndex, MeshDataCmd } from '../src'
 
 import { createDuplex } from './common'
 
@@ -112,6 +112,62 @@ describe('relay-stream', () => {
         expect(result).toEqual(expected)
       }
     })
+
+    const c2a = nodeC.createRelayStream('C->A')
+    pull(a2c, c2a, a2c)
+
+    const portNum = nodeA.createPortStream('One', 'Two')
+    pull(portNum, duplexOne, portNum)
+  })
+
+  it('filter', (done) => {
+    let count = 2
+    const duplexOne = createDuplex([1, 2, 3], (err, results) => {
+      expect(err).toBeFalsy()
+      expect(results).toEqual(['a', 'b', 'c'])
+      if (--count === 0) finished()
+    })
+
+    const nodeA = new MeshNode('A')
+    const nodeB = new MeshNode('B')
+    const nodeC = new MeshNode((_, destURI) => {
+      if (destURI === 'Two') {
+        const duplexTwo = createDuplex(['a', 'b', 'c'], (err, results) => {
+          expect(err).toBeFalsy()
+          expect(results).toEqual([1, 2, 3])
+          if (--count === 0) finished()
+        })
+        return {
+          stream: duplexTwo,
+        }
+      }
+    }, 'C')
+
+    function finished() {
+      expect(a2bResult.includes(MeshDataCmd.Open)).toBeFalsy()
+      done()
+    }
+
+    const a2bResult: string[] = []
+    const a2b = nodeA.createRelayStream({
+      name: 'A->B',
+      filter: (message) => {
+        const cmd = message[MeshDataIndex.Cmd]
+        if (cmd === MeshDataCmd.Open) {
+          return false
+        }
+        return true
+      },
+    })
+    a2b.on('outgoing', (message) => {
+      const cmd = message[MeshDataIndex.Cmd]
+      a2bResult.push(cmd)
+    })
+
+    const b2a = nodeB.createRelayStream('B->A')
+    pull(a2b, b2a, a2b)
+
+    const a2c = nodeA.createRelayStream({ priority: 1, name: 'A->C' })
 
     const c2a = nodeC.createRelayStream('C->A')
     pull(a2c, c2a, a2c)
