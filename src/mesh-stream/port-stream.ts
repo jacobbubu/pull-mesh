@@ -170,6 +170,11 @@ export class PortStream<T> extends MeshStream<T> {
     return this._sink
   }
 
+  sinkEnds() {
+    this._sinkEnd = true
+    this.finish()
+  }
+
   // process incoming message
   process(message: MeshData) {
     let processed = false
@@ -257,6 +262,8 @@ export class PortStream<T> extends MeshStream<T> {
     if (!this._finished && this._sourceEnd && this._sinkEnd) {
       this._logger.log('stream finished')
       this._finished = true
+      this._sendTouch.stop()
+      this._recvTouch.stop()
       this._node.removePortStream(this)
     }
   }

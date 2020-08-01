@@ -104,6 +104,7 @@ export class SinkMan<T> {
           self._buffer.push([endOrError, null])
           self._reading = false
           self.drain()
+          self._port.sinkEnds()
           return
         }
 
@@ -112,6 +113,7 @@ export class SinkMan<T> {
         // start a timeout check after fetching data for the first time
         if (!timer) {
           timer = setTimeout(() => {
+            timer = null
             collect()
             self.drain()
           }, self._windowTime)
