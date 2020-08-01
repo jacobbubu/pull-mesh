@@ -13,8 +13,12 @@ import {
   MeshDataCmd,
   Id,
   ReplyId,
+  MeshCmdOpenIndex,
+  MeshCmdReqIndex,
+  MeshCmdResIndex,
+  MeshCmdPingIndex,
 } from '../mesh-node'
-import { uid, hashedURI } from '../utils'
+import { uid } from '../utils'
 import { ReadMesh } from './read-mesh'
 import { SourceMan } from './source-man'
 import { SinkMan } from './sink-man'
@@ -28,9 +32,6 @@ export interface PortStreamOptions {
 export class PortStream<T> extends MeshStream<T> {
   private _pingInterval: number
   private _connectionTimeout: number
-
-  private _hashedSource: string
-  private _hashedDest: string
 
   private _isFirstRead: boolean = true
   private _sourceMan = new SourceMan<T>(this)
@@ -58,9 +59,6 @@ export class PortStream<T> extends MeshStream<T> {
     this._node = node
     this._pingInterval = opts.pingInterval ?? 20e3
     this._connectionTimeout = opts.connectionTimeout ?? 30e3
-
-    this._hashedSource = hashedURI(this._sourceURI)
-    this._hashedDest = hashedURI(this._destURI)
 
     this._logger = node.logger.ns(this._sourceURI)
 
@@ -95,11 +93,7 @@ export class PortStream<T> extends MeshStream<T> {
   }
 
   get destURI() {
-    return this._hashedDest
-  }
-
-  get hashedSource() {
-    return this._hashedSource
+    return this._destURI
   }
 
   createOpenMessage(abort: pull.Abort, id: Id): MeshCmdOpen {
@@ -107,19 +101,19 @@ export class PortStream<T> extends MeshStream<T> {
   }
 
   createReqMessage(abort: pull.Abort, id: Id): MeshCmdRequest {
-    return [id, MeshDataCmd.Req, this._hashedDest, abort]
+    return [id, MeshDataCmd.Req, this._destURI, abort]
   }
 
   createEndMessage(replyTo: ReplyId, endOrError: pull.EndOrError): MeshCmdEnd {
-    return [uid(), MeshDataCmd.End, replyTo, endOrError]
+    return [uid(), MeshDataCmd.End, this._destURI, replyTo, endOrError]
   }
 
   createResMessage(replyTo: ReplyId, dataList: any[]): MeshCmdResponse {
-    return [uid(), MeshDataCmd.Res, replyTo, dataList]
+    return [uid(), MeshDataCmd.Res, this._sourceURI, replyTo, dataList]
   }
 
   createPingMessage(): MeshCmdPing {
-    return [uid(), MeshDataCmd.Ping, this._hashedDest]
+    return [uid(), MeshDataCmd.Ping, this._destURI]
   }
 
   postToMesh(message: MeshData) {
@@ -183,6 +177,7 @@ export class PortStream<T> extends MeshStream<T> {
     let readMesh
     let destURI
     let req
+    let res
     let cmd
     let abort
     let matched
@@ -193,14 +188,14 @@ export class PortStream<T> extends MeshStream<T> {
         cmd = message[MeshDataIndex.Cmd]
         if (cmd === MeshDataCmd.Open) {
           req = message as MeshCmdOpen
-          destURI = message[MeshDataIndex.OpenDest]
-          abort = req[MeshDataIndex.OpenAbort]
+          destURI = message[MeshCmdOpenIndex.DestURI]
+          abort = req[MeshCmdOpenIndex.Abort]
           matched = destURI === this._sourceURI
         } else {
           req = message as MeshCmdRequest
-          destURI = message[MeshDataIndex.ReqDest]
-          abort = req[MeshDataIndex.ReqAbort]
-          matched = destURI === this._hashedSource
+          destURI = message[MeshCmdReqIndex.DestURI]
+          abort = req[MeshCmdReqIndex.Abort]
+          matched = destURI === this._sourceURI
         }
 
         if (matched) {
@@ -216,27 +211,29 @@ export class PortStream<T> extends MeshStream<T> {
         }
         break
       case MeshDataCmd.Res:
-        replyTo = (message as MeshCmdResponse)[MeshDataIndex.ReplyTo]
+        res = message as MeshCmdResponse
+        replyTo = res[MeshCmdResIndex.ReplyId]
         readMesh = this._readMeshMap[replyTo]
         if (readMesh) {
           this._logger.debug('recv response: %4O', message)
           this._recvTouch.touch()
-          readMesh.res(message)
+          readMesh.res(res)
           processed = true
         }
         break
       case MeshDataCmd.End:
-        replyTo = (message as MeshCmdEnd)[MeshDataIndex.ReplyTo]
+        res = message as MeshCmdEnd
+        replyTo = res[MeshCmdResIndex.ReplyId]
         readMesh = this._readMeshMap[replyTo]
         if (readMesh) {
           this._logger.debug('recv end: %4O', message)
-          readMesh.end(message)
+          readMesh.end(res)
           processed = true
         }
         break
       case MeshDataCmd.Ping:
-        destURI = message[MeshDataIndex.PingDest]
-        if (destURI === this._hashedSource) {
+        destURI = message[MeshCmdPingIndex.DestURI]
+        if (destURI === this._sourceURI) {
           this._logger.debug('recv ping')
           this._recvTouch.touch()
           processed = true

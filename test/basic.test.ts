@@ -1,17 +1,10 @@
 import * as pull from 'pull-stream'
 import { MeshNode } from '../src'
 
-const createDuplex = (values: any[], cb: (err: pull.EndOrError, data: any) => void) => {
-  return {
-    source: pull.values(values),
-    sink: pull.collect((err, results) => {
-      cb(err, results)
-    }),
-  }
-}
+import { createDuplex } from './common'
 
 describe('basic', () => {
-  it('onw node', (done) => {
+  it('one node', (done) => {
     let count = 2
     const duplexOne = createDuplex([1, 2, 3], (err, results) => {
       expect(err).toBeFalsy()

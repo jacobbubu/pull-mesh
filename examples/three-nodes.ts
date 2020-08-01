@@ -12,7 +12,7 @@ const duplexOne = {
 const nodeA = new MeshNode('A')
 const nodeB = new MeshNode('B')
 const nodeC = new MeshNode((_, destURI) => {
-  if (destURI === 'Two') {
+  if (destURI === 'clo.LW400B10WS1000X30.signalModel') {
     const duplexTwo = {
       source: pull.values(['a', 'b']),
       sink: pull.collect((_, results) => {
@@ -25,7 +25,14 @@ const nodeC = new MeshNode((_, destURI) => {
   }
 }, 'C')
 
-const a2b = nodeA.createRelayStream('A->B')
+const a2b = nodeA.createRelayStream({
+  vars: {
+    '{v}': 'veh.LW400B10WS1000X30.',
+    '{c}': 'clo.LW400B10WS1000X30.',
+    '{sm}': 'signalModel',
+  },
+  name: 'A->B',
+})
 const b2a = nodeB.createRelayStream('B->A')
 pull(a2b, b2a, a2b)
 
@@ -37,5 +44,8 @@ const a2c = nodeA.createRelayStream('A->C')
 const c2a = nodeC.createRelayStream('C->A')
 pull(a2c, c2a, a2c)
 
-const portNum = nodeA.createPortStream('One', 'Two')
+const portNum = nodeA.createPortStream(
+  'veh.LW400B10WS1000X30.signalModel',
+  'clo.LW400B10WS1000X30.signalModel'
+)
 pull(portNum, duplexOne, portNum)

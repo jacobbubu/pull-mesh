@@ -1,7 +1,7 @@
 import { assert } from 'console'
 import * as pull from 'pull-stream'
 import { PortStream } from './port-stream'
-import { MeshDataIndex, MeshData, Id } from '../mesh-node'
+import { Id, MeshCmdResponse, MeshCmdResIndex, MeshCmdEnd, MeshCmdEndIndex } from '../mesh-node'
 import { uid, noop } from '../utils'
 
 export type OnClose = (replyTo: Id, endOrError: pull.EndOrError, dataList?: any[]) => void
@@ -37,15 +37,15 @@ export class ReadMesh<T> {
     this._port.postToMesh(message)
   }
 
-  res(message: MeshData) {
-    const dataList = message[MeshDataIndex.Payload] as any[]
+  res(message: MeshCmdResponse) {
+    const dataList = message[MeshCmdResIndex.Payload]
     assert(Array.isArray(dataList))
     this.finish(null, dataList)
   }
 
   // end from mesh
-  end(message: MeshData) {
-    const end = message[MeshDataIndex.Payload] as pull.EndOrError
+  end(message: MeshCmdEnd) {
+    const end = message[MeshCmdEndIndex.EndOrError]
     this.finish(end)
   }
 

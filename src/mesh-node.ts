@@ -1,21 +1,55 @@
 import * as pull from 'pull-stream'
 import { Dup } from './dup'
 import { uid3 } from './utils'
-import { RelayStream, PortStream, PortStreamOptions, MeshStream } from './mesh-stream'
+import {
+  RelayStream,
+  RelayStreamOptions,
+  PortStream,
+  PortStreamOptions,
+  MeshStream,
+} from './mesh-stream'
 import { Debug } from '@jacobbubu/debug'
 
 export enum MeshDataIndex {
   Id = 0,
-  Cmd = 1,
-  ReplyTo = 2,
-  Payload = 3,
+  Cmd,
+}
 
-  OpenSource = 2,
-  OpenDest = 3,
-  OpenAbort = 4,
-  ReqDest = 2,
-  ReqAbort = 3,
-  PingDest = 2,
+export enum MeshCmdOpenIndex {
+  Id = 0,
+  Cmd,
+  SourceURI,
+  DestURI,
+  Abort,
+}
+
+export enum MeshCmdReqIndex {
+  Id = 0,
+  Cmd,
+  DestURI,
+  Abort,
+}
+
+export enum MeshCmdResIndex {
+  Id = 0,
+  Cmd,
+  SourceURI,
+  ReplyId,
+  Payload,
+}
+
+export enum MeshCmdEndIndex {
+  Id = 0,
+  Cmd,
+  SourceURI,
+  ReplyId,
+  EndOrError,
+}
+
+export enum MeshCmdPingIndex {
+  Id = 0,
+  Cmd,
+  DestURI,
 }
 
 export enum MeshDataCmd {
@@ -33,8 +67,8 @@ export type DestURI = string
 
 export type MeshCmdOpen = [Id, MeshDataCmd.Open, SourceURI, DestURI, pull.Abort]
 export type MeshCmdRequest = [Id, MeshDataCmd.Req, DestURI, pull.Abort]
-export type MeshCmdResponse = [Id, MeshDataCmd.Res, ReplyId, any[]]
-export type MeshCmdEnd = [Id, MeshDataCmd.End, ReplyId, pull.EndOrError]
+export type MeshCmdResponse = [Id, MeshDataCmd.Res, SourceURI, ReplyId, any[]]
+export type MeshCmdEnd = [Id, MeshDataCmd.End, SourceURI, ReplyId, pull.EndOrError]
 export type MeshCmdPing = [Id, MeshDataCmd.Ping, DestURI]
 export type MeshData = MeshCmdOpen | MeshCmdRequest | MeshCmdResponse | MeshCmdEnd | MeshCmdPing
 
@@ -88,8 +122,14 @@ export class MeshNode {
     return stream
   }
 
-  createRelayStream(name?: string) {
-    const stream = new RelayStream(this, name)
+  createRelayStream(opts?: Partial<RelayStreamOptions> | string) {
+    let t: Partial<RelayStreamOptions> | undefined = undefined
+    if (typeof opts === 'string') {
+      t = { name: opts }
+    } else {
+      t = opts
+    }
+    const stream = new RelayStream(this, t)
     this._relayStreams.push(stream)
     return stream
   }
@@ -116,8 +156,8 @@ export class MeshNode {
   openPort(message: MeshCmdOpen) {
     if (!this._onOpenPort) return false
 
-    const sourceURI = message[MeshDataIndex.OpenSource]
-    const destURI = message[MeshDataIndex.OpenDest]
+    const sourceURI = message[MeshCmdOpenIndex.SourceURI]
+    const destURI = message[MeshCmdOpenIndex.DestURI]
 
     const result = this._onOpenPort(sourceURI, destURI)
     if (!result) return false
