@@ -80,7 +80,7 @@ describe('basic', () => {
           stream: duplexTwo,
         }
       }
-    }, 'B')
+    }, 'C')
 
     const a2b = nodeA.createRelayStream('A->B')
     const b2a = nodeB.createRelayStream('B->A')
