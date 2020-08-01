@@ -23,6 +23,7 @@ export class TouchMan {
   private start() {
     if (!this._started) {
       this._started = true
+      this._touchedAt = now()
       globalTimer.on('1s', this.timeout)
     }
   }

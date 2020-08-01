@@ -29,7 +29,8 @@
     "precommit": "lint-staged",
     "example:two-nodes": "DEBUG_NAME_WIDTH=20 DEBUG='mesh*' tsnd --respawn examples/two-nodes.ts",
     "example:three-nodes": "DEBUG_NAME_WIDTH=20 DEBUG='mesh*' tsnd --respawn examples/three-nodes.ts",
-    "example:model": "DEBUG_NAME_WIDTH=20 DEBUG='mesh*,sb*' tsnd --respawn examples/model.ts"
+    "example:model": "DEBUG_NAME_WIDTH=20 DEBUG='mesh*,sb*' tsnd --respawn examples/model.ts",
+    "example:continue": "DEBUG_NAME_WIDTH=20 DEBUG='mesh*,sb*' tsnd --respawn examples/continue.ts"
   },
   "lint-staged": {
     "{src,test}/**/*.ts": [
@@ -62,10 +63,10 @@
     ],
     "coverageThreshold": {
       "global": {
-        "branches": 50,
-        "functions": 50,
-        "lines": 50,
-        "statements": 50
+        "branches": 70,
+        "functions": 80,
+        "lines": 80,
+        "statements": 85
       }
     },
     "collectCoverage": true

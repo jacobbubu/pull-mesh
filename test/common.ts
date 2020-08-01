@@ -8,3 +8,21 @@ export const createDuplex = (values: any[], cb: (err: pull.EndOrError, data: any
     }),
   }
 }
+
+export const createDelayedDuplex = (
+  values: any[],
+  delay: number,
+  cb: (err: pull.EndOrError, data: any) => void
+) => {
+  return {
+    source: pull(
+      pull.values(values),
+      pull.asyncMap((data, cb) => {
+        setTimeout(() => cb(null, data), delay)
+      })
+    ),
+    sink: pull.collect((err, results) => {
+      cb(err, results)
+    }),
+  }
+}

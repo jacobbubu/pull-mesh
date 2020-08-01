@@ -38,6 +38,13 @@ export enum MeshCmdResIndex {
   Payload,
 }
 
+export enum MeshCmdContinueIndex {
+  Id = 0,
+  Cmd,
+  SourceURI,
+  ReplyId,
+}
+
 export enum MeshCmdEndIndex {
   Id = 0,
   Cmd,
@@ -46,18 +53,12 @@ export enum MeshCmdEndIndex {
   EndOrError,
 }
 
-export enum MeshCmdPingIndex {
-  Id = 0,
-  Cmd,
-  DestURI,
-}
-
 export enum MeshDataCmd {
   Open = 'open',
   Req = 'req',
   Res = 'res',
+  Continue = 'con',
   End = 'end',
-  Ping = 'ping',
 }
 
 export type Id = string
@@ -68,9 +69,10 @@ export type DestURI = string
 export type MeshCmdOpen = [Id, MeshDataCmd.Open, SourceURI, DestURI, pull.Abort]
 export type MeshCmdRequest = [Id, MeshDataCmd.Req, DestURI, pull.Abort]
 export type MeshCmdResponse = [Id, MeshDataCmd.Res, SourceURI, ReplyId, any[]]
+export type MeshCmdContinue = [Id, MeshDataCmd.Continue, SourceURI, ReplyId]
 export type MeshCmdEnd = [Id, MeshDataCmd.End, SourceURI, ReplyId, pull.EndOrError]
-export type MeshCmdPing = [Id, MeshDataCmd.Ping, DestURI]
-export type MeshData = MeshCmdOpen | MeshCmdRequest | MeshCmdResponse | MeshCmdEnd | MeshCmdPing
+
+export type MeshData = MeshCmdOpen | MeshCmdRequest | MeshCmdResponse | MeshCmdContinue | MeshCmdEnd
 
 function isOpenMessage(message: MeshData) {
   return message[MeshDataIndex.Cmd] === MeshDataCmd.Open

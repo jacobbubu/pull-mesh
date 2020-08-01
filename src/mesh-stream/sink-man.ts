@@ -6,12 +6,16 @@ export interface ReadMeshItem {
   replyTo: Id
 }
 
+interface InternalReadMeshItem extends ReadMeshItem {
+  timeout?: NodeJS.Timeout
+}
+
 export class SinkMan<T> {
   private readonly _limit = 3
   private readonly _windowTime = 200
 
   private _rawRead: pull.Source<T> | null = null
-  private _readMeshList: ReadMeshItem[] = []
+  private _readMeshList: InternalReadMeshItem[] = []
   private _abort: pull.Abort = null
   private readonly _buffer: [pull.EndOrError, T[] | null][] = []
   private _reading = false
@@ -35,7 +39,23 @@ export class SinkMan<T> {
   }
 
   addReadMesh(item: ReadMeshItem) {
-    this._readMeshList.push(item)
+    const replyTo = item.replyTo
+
+    const timedOutFunc = (item: InternalReadMeshItem) => {
+      this._port.postToMesh(this._port.createContinueMessage(replyTo))
+      item.timeout = setTimeout(timedOutFunc, this._port.continueInterval, item)
+    }
+
+    const internalReadMeshItem: InternalReadMeshItem = {
+      replyTo,
+    }
+    internalReadMeshItem.timeout = setTimeout(
+      timedOutFunc,
+      this._port.continueInterval,
+      internalReadMeshItem
+    )
+
+    this._readMeshList.push(internalReadMeshItem)
     this.drain()
   }
 
@@ -49,11 +69,13 @@ export class SinkMan<T> {
       if (endOrError) {
         // once end always end
         const item = this._readMeshList.shift()!
+        clearTimeout(item.timeout!)
         this._port.postToMesh(this._port.createEndMessage(item.replyTo, endOrError))
       } else {
         const r = this._buffer.shift()
         if (r) {
           const item = this._readMeshList.shift()!
+          clearTimeout(item.timeout!)
           const [end, dataList] = r
           if (end) {
             this._port.postToMesh(this._port.createEndMessage(item.replyTo, end))

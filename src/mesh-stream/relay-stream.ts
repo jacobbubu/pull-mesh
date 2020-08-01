@@ -14,7 +14,8 @@ import {
   MeshCmdOpenIndex,
   MeshCmdReqIndex,
   MeshCmdResIndex,
-  MeshCmdPing,
+  MeshCmdContinueIndex,
+  MeshCmdContinue,
 } from '../mesh-node'
 import { uid2, escapeRegExp } from '../utils'
 
@@ -219,16 +220,20 @@ function formatMessage(replacer: Replacer, message: MeshData) {
         newMessage[MeshCmdResIndex.SourceURI]
       )
       break
+    case MeshDataCmd.Continue:
+      newMessage = [...message] as MeshCmdContinue
+      newMessage[MeshCmdContinueIndex.SourceURI] = format(
+        replacer,
+        newMessage[MeshCmdContinueIndex.SourceURI]
+      )
+      break
+
     case MeshDataCmd.End:
       newMessage = [...message] as MeshCmdEnd
       newMessage[MeshCmdResIndex.SourceURI] = format(
         replacer,
         newMessage[MeshCmdResIndex.SourceURI]
       )
-      break
-    case MeshDataCmd.Ping:
-      newMessage = [...message] as MeshCmdPing
-      newMessage[MeshCmdReqIndex.DestURI] = format(replacer, newMessage[MeshCmdReqIndex.DestURI])
       break
     default:
       newMessage = message
