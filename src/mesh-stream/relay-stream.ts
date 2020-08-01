@@ -32,14 +32,29 @@ export interface RelayStreamOptions {
 
 type Replacer = [RegExp, string][]
 
-export class RelayStream extends MeshStream<MeshData> {
-  protected _logger: Debug
-  protected _node: MeshNode
-  protected _source: pull.Source<MeshData> | null = null
-  protected _sink: pull.Sink<MeshData> | null = null
-  protected _sourceEnd: pull.Abort | null = null
-  protected _sinkEnd: pull.EndOrError | null = null
+export interface RelayStream {
+  addListener(
+    event: 'incoming' | 'outgoing',
+    listener: (raw: MeshData, encoded: MeshData) => void
+  ): this
+  on(event: 'incoming' | 'outgoing', listener: (raw: MeshData, encoded: MeshData) => void): this
+  once(event: 'incoming' | 'outgoing', listener: (raw: MeshData, encoded: MeshData) => void): this
+  removeListener(
+    event: 'incoming' | 'outgoing',
+    listener: (raw: MeshData, encoded: MeshData) => void
+  ): this
+  off(event: 'incoming' | 'outgoing', listener: (raw: MeshData, encoded: MeshData) => void): this
+  emit(event: 'incoming' | 'outgoing', raw: MeshData, encoded: MeshData): boolean
 
+  addListener(event: 'ignored', listener: (message: MeshData) => void): this
+  on(event: 'ignored', listener: (message: MeshData) => void): this
+  once(event: 'ignored', listener: (message: MeshData) => void): this
+  removeListener(event: 'ignored', listener: (message: MeshData) => void): this
+  off(event: 'ignored', listener: (message: MeshData) => void): this
+  emit(event: 'ignored', message: MeshData): boolean
+}
+
+export class RelayStream extends MeshStream<MeshData> {
   private _name: string
   private _filter: FilterFunc | null
   private _vars: VarsType
@@ -52,8 +67,7 @@ export class RelayStream extends MeshStream<MeshData> {
   public kind = 'RELAY'
 
   constructor(node: MeshNode, private readonly _opts: Partial<RelayStreamOptions> = {}) {
-    super()
-    this._node = node
+    super(node)
     this._name = _opts.name ?? uid2()
     this._filter = _opts.filter ?? null
     this._vars = _opts.vars ?? {}
@@ -118,9 +132,11 @@ export class RelayStream extends MeshStream<MeshData> {
             const id = message[MeshDataIndex.Id]
             if (!dup.check(id)) {
               dup.track(id)
-              self._node.broadcast(self.preBroadcast(message), self)
+              const encoded = self.preBroadcast(message)
+              self.emit('incoming', message, encoded)
+              self._node.broadcast(encoded, self)
             } else {
-              self._logger.log('ignore duplicated message', message)
+              self.emit('ignored', message)
             }
           }
           rawRead(self._sourceEnd, next)
@@ -130,17 +146,17 @@ export class RelayStream extends MeshStream<MeshData> {
     return this._sink
   }
 
-  forward(message: MeshData) {
-    ;(this.source as Read<MeshData>).push(this.preForward(message))
+  forward(rawMessage: MeshData) {
+    const encoded = this.preForward(rawMessage)
+    this.emit('outgoing', rawMessage, encoded)
+    ;(this.source as Read<MeshData>).push(encoded)
   }
 
   protected preBroadcast(message: MeshData): MeshData {
-    this._logger.debug('preBroadcast: %4O', message)
     return formatMessage(this._replacer, message)
   }
 
   protected preForward(message: MeshData) {
-    this._logger.debug('preForward: %4O', message)
     return formatMessage(this._reversed, message)
   }
 

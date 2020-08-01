@@ -69,4 +69,54 @@ describe('relay-stream', () => {
     const portNum = nodeA.createPortStream(sourceURI, destURI)
     pull(portNum, duplexOne, portNum)
   })
+
+  it('priority', (done) => {
+    let count = 2
+    const duplexOne = createDuplex([1, 2, 3], (err, results) => {
+      expect(err).toBeFalsy()
+      expect(results).toEqual(['a', 'b', 'c'])
+      if (--count === 0) done()
+    })
+
+    const nodeA = new MeshNode('A')
+    const nodeB = new MeshNode('B')
+    const nodeC = new MeshNode((_, destURI) => {
+      if (destURI === 'Two') {
+        const duplexTwo = createDuplex(['a', 'b', 'c'], (err, results) => {
+          expect(err).toBeFalsy()
+          expect(results).toEqual([1, 2, 3])
+          if (--count === 0) done()
+        })
+        return {
+          stream: duplexTwo,
+        }
+      }
+    }, 'C')
+
+    const result: string[] = []
+    const expected = ['a2c', 'a2b']
+    const a2b = nodeA.createRelayStream({ name: 'A->B' })
+    a2b.on('outgoing', (message) => {
+      result.push('a2b')
+      if (result.length === 2) {
+        expect(result).toEqual(expected)
+      }
+    })
+    const b2a = nodeB.createRelayStream('B->A')
+    pull(a2b, b2a, a2b)
+
+    const a2c = nodeA.createRelayStream({ priority: 1, name: 'A->C' })
+    a2c.on('outgoing', (message) => {
+      result.push('a2c')
+      if (result.length === 2) {
+        expect(result).toEqual(expected)
+      }
+    })
+
+    const c2a = nodeC.createRelayStream('C->A')
+    pull(a2c, c2a, a2c)
+
+    const portNum = nodeA.createPortStream('One', 'Two')
+    pull(portNum, duplexOne, portNum)
+  })
 })

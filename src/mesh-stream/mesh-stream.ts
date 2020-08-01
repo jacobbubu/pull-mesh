@@ -1,18 +1,31 @@
 import * as pull from 'pull-stream'
 import { MeshNode } from '../mesh-node'
 import { Debug } from '@jacobbubu/debug'
+import { EventEmitter } from 'events'
 
-export abstract class MeshStream<T> {
+export class MeshStream<T> extends EventEmitter {
   protected _finished = false
 
-  protected abstract _logger: Debug
-  protected abstract _node: MeshNode
-  protected abstract _source: pull.Source<T> | null = null
-  protected abstract _sink: pull.Sink<T> | null = null
-  protected abstract _sourceEnd: pull.Abort | null = null
-  protected abstract _sinkEnd: pull.EndOrError | null = null
+  protected _logger: Debug
+  protected _node: MeshNode
+  protected _source: pull.Source<T> | null = null
+  protected _sink: pull.Sink<T> | null = null
+  protected _sourceEnd: pull.Abort | null = null
+  protected _sinkEnd: pull.EndOrError | null = null
 
-  abstract kind: string
-  abstract get name(): string
-  abstract get node(): MeshNode
+  public kind = 'BASE'
+
+  get name() {
+    return 'base'
+  }
+
+  get node() {
+    return this._node
+  }
+
+  constructor(node: MeshNode) {
+    super()
+    this._node = node
+    this._logger = node.logger.ns(this.name)
+  }
 }

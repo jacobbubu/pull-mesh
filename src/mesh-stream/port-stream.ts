@@ -40,13 +40,7 @@ export class PortStream<T> extends MeshStream<T> {
   private _sendTouch: TouchMan
   private _recvTouch: TouchMan
 
-  protected _logger: Debug
-  protected _node: MeshNode
-  protected _source: pull.Source<T> | null = null
-  protected _sink: pull.Sink<T> | null = null
-  protected _sourceEnd: pull.Abort | null = null
-  protected _sinkEnd: pull.EndOrError | null = null
-
+  // protected _logger: Debug
   public kind = 'PORT'
 
   constructor(
@@ -55,8 +49,7 @@ export class PortStream<T> extends MeshStream<T> {
     node: MeshNode,
     opts: Partial<PortStreamOptions> = {}
   ) {
-    super()
-    this._node = node
+    super(node)
     this._pingInterval = opts.pingInterval ?? 20e3
     this._connectionTimeout = opts.connectionTimeout ?? 30e3
 

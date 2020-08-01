@@ -131,6 +131,7 @@ export class MeshNode {
     }
     const stream = new RelayStream(this, t)
     this._relayStreams.push(stream)
+    this.sortRelayStreams()
     return stream
   }
 
@@ -184,5 +185,17 @@ export class MeshNode {
       return true
     }
     return false
+  }
+
+  private sortRelayStreams() {
+    this._relayStreams.sort((a, b) => {
+      if (a.priority < b.priority) {
+        return -1
+      } else if (a.priority > b.priority) {
+        return 1
+      } else {
+        return 0
+      }
+    })
   }
 }
