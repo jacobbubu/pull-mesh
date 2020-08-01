@@ -55,7 +55,6 @@ describe('relay-stream', () => {
       }),
       nodeB.createRelayStream('B->A'),
       pull.through((data) => {
-        console.log(data)
         if (i2 === 0) {
           expect(data).toEqual({})
         } else if (i2 === 1) {
