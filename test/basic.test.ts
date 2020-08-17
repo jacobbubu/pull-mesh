@@ -137,7 +137,7 @@ describe('basic', () => {
     pull(portNum, duplexOne, portNum)
   })
 
-  it.skip('three nodes with two port streams have the same destURI and sourceURI', (done) => {
+  it('three nodes with two port streams have the same destURI and sourceURI', (done) => {
     let count = 4
     const duplexOne = createDuplex([1, 2, 3], (err, results) => {
       expect(err).toBeFalsy()
