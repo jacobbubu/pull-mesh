@@ -20,6 +20,7 @@ export enum MeshCmdOpenIndex {
   Cmd,
   SourceURI,
   DestURI,
+  PortId,
   Abort,
 }
 
@@ -27,6 +28,7 @@ export enum MeshCmdReqIndex {
   Id = 0,
   Cmd,
   DestURI,
+  PeerPortId,
   Abort,
 }
 
@@ -34,6 +36,7 @@ export enum MeshCmdResIndex {
   Id = 0,
   Cmd,
   SourceURI,
+  PeerPortId,
   ReplyId,
   Payload,
 }
@@ -42,6 +45,7 @@ export enum MeshCmdContinueIndex {
   Id = 0,
   Cmd,
   SourceURI,
+  PeerPortId,
   ReplyId,
 }
 
@@ -49,6 +53,7 @@ export enum MeshCmdEndIndex {
   Id = 0,
   Cmd,
   SourceURI,
+  PeerPortId,
   ReplyId,
   EndOrError,
 }
@@ -63,20 +68,18 @@ export enum MeshDataCmd {
 
 export type Id = string
 export type ReplyId = Id
+export type PortId = Id
+export type PeerPortId = PortId
 export type SourceURI = string
 export type DestURI = string
 
-export type MeshCmdOpen = [Id, MeshDataCmd.Open, SourceURI, DestURI, pull.Abort]
-export type MeshCmdRequest = [Id, MeshDataCmd.Req, DestURI, pull.Abort]
-export type MeshCmdResponse = [Id, MeshDataCmd.Res, SourceURI, ReplyId, any[]]
-export type MeshCmdContinue = [Id, MeshDataCmd.Continue, SourceURI, ReplyId]
-export type MeshCmdEnd = [Id, MeshDataCmd.End, SourceURI, ReplyId, pull.EndOrError]
+export type MeshCmdOpen = [Id, MeshDataCmd.Open, SourceURI, DestURI, PortId, pull.Abort]
+export type MeshCmdRequest = [Id, MeshDataCmd.Req, DestURI, PeerPortId, pull.Abort]
+export type MeshCmdResponse = [Id, MeshDataCmd.Res, SourceURI, PeerPortId, ReplyId, any[]]
+export type MeshCmdContinue = [Id, MeshDataCmd.Continue, SourceURI, PeerPortId, ReplyId]
+export type MeshCmdEnd = [Id, MeshDataCmd.End, SourceURI, PeerPortId, ReplyId, pull.EndOrError]
 
 export type MeshData = MeshCmdOpen | MeshCmdRequest | MeshCmdResponse | MeshCmdContinue | MeshCmdEnd
-
-function isOpenMessage(message: MeshData) {
-  return message[MeshDataIndex.Cmd] === MeshDataCmd.Open
-}
 
 export interface OpenPortResult {
   stream: pull.Duplex<any, any>
@@ -138,7 +141,7 @@ export class MeshNode {
   }
 
   broadcast(message: MeshData, source: MeshStream<any>) {
-    if (isOpenMessage(message) && this._onOpenPort) {
+    if (this.isNewOpenMessage(message) && this._onOpenPort) {
       this.openPort(message as MeshCmdOpen)
     }
 
@@ -205,5 +208,17 @@ export class MeshNode {
         return 0
       }
     })
+  }
+
+  private isNewOpenMessage(message: MeshData) {
+    if (message[MeshDataIndex.Cmd] !== MeshDataCmd.Open) return false
+
+    const portId = (message as MeshCmdOpen)[MeshCmdOpenIndex.PortId]
+    for (let i = 0; i < this._portStreams.length; i++) {
+      if (portId === this._portStreams[i].peerPortId) {
+        return false
+      }
+    }
+    return true
   }
 }
