@@ -141,6 +141,9 @@ export class PortStream<T> extends MeshStream<T> {
             self._logger.log('sourceMan end', endOrError)
             self._sourceMan.end(endOrError)
             self._sourceEnd = endOrError
+            if (endOrError instanceof Error) {
+              self._sinkMan.abort(endOrError)
+            }
             self.finish()
           } else {
             self._sourceMan.pushList(dataList!)

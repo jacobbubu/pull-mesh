@@ -121,6 +121,14 @@ export class MeshNode {
     return this._name
   }
 
+  get portStreamsLength() {
+    return this._portStreams.length
+  }
+
+  get relayStreamsLength() {
+    return this._relayStreams.length
+  }
+
   createPortStream<T>(sourceURI: string, destURI: string, opts?: Partial<PortStreamOptions>) {
     const stream = new PortStream<T>(sourceURI, destURI, this, opts)
     this._portStreams.push(stream)

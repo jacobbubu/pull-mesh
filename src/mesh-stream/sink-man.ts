@@ -89,7 +89,7 @@ export class SinkMan<T> {
       }
     }
     if (this._rawRead && this.hasReadMesh()) {
-      this.read(this._abort)
+      this.read()
     }
   }
 
@@ -98,7 +98,7 @@ export class SinkMan<T> {
   }
 
   // calling by sink
-  private read(abort: pull.Abort) {
+  private read() {
     if (this._rawRead && !this._reading) {
       // use this._reading to prevent reentering
       this._reading = true
@@ -120,7 +120,7 @@ export class SinkMan<T> {
         }
       }
 
-      rawRead(abort, function next(endOrError, data) {
+      rawRead(self._abort, function next(endOrError, data) {
         if (endOrError) {
           collect()
           self._buffer.push([endOrError, null])
@@ -149,7 +149,7 @@ export class SinkMan<T> {
           return
         }
 
-        rawRead(abort, next)
+        rawRead(self._abort, next)
       })
     }
   }
