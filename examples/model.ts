@@ -1,8 +1,8 @@
-import * as pull from 'pull-stream'
+import * as pull from '@jacobbubu/pull-stream'
 import { Model } from '@jacobbubu/scuttlebutt-pull'
 import { MeshNode } from '../src'
 
-const PortOpts = { pingInterval: 20e3, connectionTimeout: 30e3 }
+const PortOpts = { continueInterval: 500, readTimeout: 1e3 }
 
 const modelOne = new Model('One')
 const modelTwo = new Model('Two')

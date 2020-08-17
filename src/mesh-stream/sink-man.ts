@@ -1,5 +1,5 @@
-import * as pull from 'pull-stream'
-import { Id } from 'src/mesh-node'
+import * as pull from '@jacobbubu/pull-stream'
+import { Id } from '../mesh-node'
 import { PortStream } from './port-stream'
 
 export interface ReadMeshItem {

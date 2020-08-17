@@ -1,4 +1,4 @@
-import * as pull from 'pull-stream'
+import * as pull from '@jacobbubu/pull-stream'
 
 export const createDuplex = (values: any[], cb: (err: pull.EndOrError, data: any) => void) => {
   return {

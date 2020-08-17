@@ -1,4 +1,4 @@
-import * as pull from 'pull-stream'
+import * as pull from '@jacobbubu/pull-stream'
 import { MeshNode } from '../mesh-node'
 import { Debug } from '@jacobbubu/debug'
 import { EventEmitter } from 'events'

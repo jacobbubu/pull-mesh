@@ -12,10 +12,6 @@
     "emitDecoratorMetadata": true,
     "declarationDir": "dist/types",
     "outDir": "dist",
-    "baseUrl": ".",
-    "paths": {
-      "pull-stream": ["node_modules/@jacobbubu/pull-stream-types"]
-    },
     "typeRoots": ["node_modules/@types"]
   }
 }

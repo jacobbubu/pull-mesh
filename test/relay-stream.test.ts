@@ -1,5 +1,5 @@
-import * as pull from 'pull-stream'
-import { MeshNode, MeshDataIndex, MeshDataCmd } from '../src'
+import * as pull from '@jacobbubu/pull-stream'
+import { MeshNode, MeshDataIndex, MeshDataCmd, VarsType } from '../src'
 
 import { createDuplex } from './common'
 
@@ -44,7 +44,7 @@ describe('relay-stream', () => {
 
     pull(
       a2b,
-      pull.through((data) => {
+      pull.through((data: VarsType) => {
         if (i1 === 0) {
           expect(data).toEqual(opts.vars)
         } else if (i1 === 1) {
@@ -54,7 +54,7 @@ describe('relay-stream', () => {
         i1 += 1
       }),
       nodeB.createRelayStream('B->A'),
-      pull.through((data) => {
+      pull.through((data: VarsType) => {
         if (i2 === 0) {
           expect(data).toEqual({})
         } else if (i2 === 1) {
