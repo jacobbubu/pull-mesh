@@ -61,6 +61,9 @@ export class SinkMan<T> {
 
   abort(abort: pull.Abort = true) {
     this._abort = abort
+    if (!this._reading) {
+      this._port.sinkEnds()
+    }
   }
 
   drain() {

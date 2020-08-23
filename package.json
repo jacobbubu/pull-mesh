@@ -76,6 +76,7 @@
     "singleQuote": true
   },
   "devDependencies": {
+    "@jacobbubu/pull-abortable": "^1.0.0",
     "@jacobbubu/pull-plex": "^1.6.0",
     "@jacobbubu/pull-stream": "^3.6.14",
     "@jacobbubu/scuttlebutt-pull": "^1.6.14",
