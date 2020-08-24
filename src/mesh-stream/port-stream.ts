@@ -38,7 +38,7 @@ export class PortStream<T> extends MeshStream<T> {
   private _isFirstRead: boolean = true
   private _sourceMan = new SourceMan<T>(this)
   private _sinkMan: SinkMan<T>
-  private _readMeshMap: Record<Id, ReadMesh<T>> = {}
+  private _readMeshMap: Map<Id, ReadMesh<T>> = new Map()
 
   private readonly _portId = uid()
   private _peerPortId: PortId | null = null
@@ -128,9 +128,9 @@ export class PortStream<T> extends MeshStream<T> {
         if (abort) {
           // send abort message to mesh and ignore the result
           const readMesh = ReadMesh.createAbort(self, (id) => {
-            delete self._readMeshMap[id]
+            self._readMeshMap.delete(id)
           })
-          self._readMeshMap[readMesh.id] = readMesh
+          self._readMeshMap.set(readMesh.id, readMesh)
           readMesh.postToMesh(self._isFirstRead, abort)
           self._isFirstRead = false
           self._sourceMan.abort(abort)
@@ -143,7 +143,7 @@ export class PortStream<T> extends MeshStream<T> {
         if (self._sourceMan.addCb(cb)) return
 
         const readMesh = ReadMesh.create(self, function next(id, endOrError, dataList) {
-          delete self._readMeshMap[id]
+          self._readMeshMap.delete(id)
           if (endOrError) {
             self._logger.log('sourceMan end', endOrError)
             self._sourceMan.end(endOrError)
@@ -157,7 +157,7 @@ export class PortStream<T> extends MeshStream<T> {
           }
         })
 
-        self._readMeshMap[readMesh.id] = readMesh
+        self._readMeshMap.set(readMesh.id, readMesh)
         readMesh.postToMesh(self._isFirstRead)
         self._isFirstRead = false
       }
@@ -227,7 +227,7 @@ export class PortStream<T> extends MeshStream<T> {
         res = message as MeshCmdResponse
         portId = res[MeshCmdResIndex.PeerPortId]
         replyTo = res[MeshCmdResIndex.ReplyId]
-        readMesh = this._readMeshMap[replyTo]
+        readMesh = this._readMeshMap.get(replyTo)
         if (portId === this._portId && readMesh) {
           this._logger.debug('recv response: %4O', message)
           readMesh.res(res)
@@ -238,7 +238,7 @@ export class PortStream<T> extends MeshStream<T> {
         res = message as MeshCmdContinue
         portId = res[MeshCmdContinueIndex.PeerPortId]
         replyTo = res[MeshCmdContinueIndex.ReplyId]
-        readMesh = this._readMeshMap[replyTo]
+        readMesh = this._readMeshMap.get(replyTo)
         if (portId === this._portId && readMesh) {
           this._logger.debug('recv continue: %4O', message)
           readMesh.continue(res)
@@ -249,7 +249,7 @@ export class PortStream<T> extends MeshStream<T> {
         res = message as MeshCmdEnd
         portId = res[MeshCmdEndIndex.PeerPortId]
         replyTo = res[MeshCmdEndIndex.ReplyId]
-        readMesh = this._readMeshMap[replyTo]
+        readMesh = this._readMeshMap.get(replyTo)
         if (portId === this._portId && readMesh) {
           this._logger.debug('recv end: %4O', message)
           readMesh.end(res)
@@ -261,9 +261,7 @@ export class PortStream<T> extends MeshStream<T> {
         portId = res[MeshCmdSinkEndIndex.PeerPortId]
         if (portId === this._portId) {
           this._logger.debug('recv sinkEnd: %4O', message)
-          Object.keys(this._readMeshMap).forEach((key) => {
-            this._readMeshMap[key].sinkEnd(message as MeshCmdSinkEnd)
-          })
+          this._readMeshMap.forEach((readMesh) => readMesh.sinkEnd(message as MeshCmdSinkEnd))
           processed = true
         }
         break
