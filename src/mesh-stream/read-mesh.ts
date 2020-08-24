@@ -1,5 +1,5 @@
 import { assert } from 'console'
-import * as pull from '@jacobbubu/pull-stream'
+import * as pull from 'pull-stream'
 import { PortStream } from './port-stream'
 import {
   Id,

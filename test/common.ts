@@ -1,4 +1,4 @@
-import * as pull from '@jacobbubu/pull-stream'
+import * as pull from 'pull-stream'
 import Abortable from '@jacobbubu/pull-abortable'
 
 export const createDuplex = (values: any[], cb: (err: pull.EndOrError, data: any) => void) => {

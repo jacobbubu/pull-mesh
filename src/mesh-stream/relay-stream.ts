@@ -1,4 +1,4 @@
-import * as pull from '@jacobbubu/pull-stream'
+import * as pull from 'pull-stream'
 import { pushable, Read } from '@jacobbubu/pull-pushable'
 import { Debug } from '@jacobbubu/debug'
 import { MeshStream } from './mesh-stream'

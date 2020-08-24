@@ -1,4 +1,4 @@
-import * as pull from '@jacobbubu/pull-stream'
+import * as pull from 'pull-stream'
 import { MeshNode, MeshDataIndex, MeshDataCmd, VarsType } from '../src'
 
 import { createDuplex } from './common'

@@ -1,4 +1,4 @@
-import * as pull from '@jacobbubu/pull-stream'
+import * as pull from 'pull-stream'
 import { Model } from '@jacobbubu/scuttlebutt-pull'
 import { MeshNode } from '../src'
 

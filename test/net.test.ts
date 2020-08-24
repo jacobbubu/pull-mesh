@@ -1,5 +1,5 @@
 import * as net from 'net'
-import * as pull from '@jacobbubu/pull-stream'
+import * as pull from 'pull-stream'
 const toPull = require('stream-to-pull-stream')
 import { MeshNode, wrap } from '../src'
 

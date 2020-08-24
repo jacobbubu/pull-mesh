@@ -77,16 +77,15 @@
     "singleQuote": true
   },
   "devDependencies": {
-    "@jacobbubu/pull-abortable": "^1.0.0",
-    "@jacobbubu/pull-plex": "^1.6.0",
-    "@jacobbubu/pull-stream": "^3.6.14",
-    "@jacobbubu/scuttlebutt-pull": "^1.6.14",
+    "@jacobbubu/pull-abortable": "^1.0.1",
+    "@jacobbubu/scuttlebutt-pull": "^1.6.15",
     "@types/jest": "^25.2.1",
     "@types/node": "^13.11.0",
+    "@types/pull-stream": "^3.6.2",
     "@types/rc": "^1.1.0",
     "@types/shelljs": "^0.8.8",
     "colors": "^1.4.0",
-    "commitizen": "^4.1.2",
+    "commitizen": "^4.1.5",
     "coveralls": "^3.0.11",
     "cross-env": "^7.0.2",
     "cz-conventional-changelog": "^3.2.0",
@@ -118,9 +117,11 @@
   },
   "dependencies": {
     "@jacobbubu/debug": "^1.2.0",
-    "@jacobbubu/pull-length-prefixed": "^1.0.0",
-    "@jacobbubu/pull-pushable": "^1.2.3",
-    "@jacobbubu/pull-window": "^1.0.1",
+    "@jacobbubu/pull-length-prefixed": "^1.0.1",
+    "@jacobbubu/pull-pushable": "^1.2.4",
+    "@jacobbubu/pull-through": "^1.1.2",
+    "@jacobbubu/pull-window": "^1.0.2",
+    "pull-stream": "^3.6.14",
     "short-unique-id": "^3.0.3",
     "zipson": "^0.2.12"
   }

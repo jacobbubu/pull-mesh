@@ -1,4 +1,4 @@
-import * as pull from '@jacobbubu/pull-stream'
+import * as pull from 'pull-stream'
 import { Dup } from './dup'
 import { uid3 } from './utils'
 import {

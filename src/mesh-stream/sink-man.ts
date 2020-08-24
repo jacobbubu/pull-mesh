@@ -1,4 +1,4 @@
-import * as pull from '@jacobbubu/pull-stream'
+import * as pull from 'pull-stream'
 import { Id } from '../mesh-node'
 import { PortStream } from './port-stream'
 
