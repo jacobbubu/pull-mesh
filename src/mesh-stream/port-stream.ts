@@ -5,18 +5,21 @@ import {
   MeshData,
   MeshDataIndex,
   MeshCmdEnd,
+  MeshCmdSinkEnd,
   MeshCmdResponse,
   MeshCmdRequest,
   MeshCmdOpen,
   MeshDataCmd,
+  MeshCmdContinue,
   Id,
   ReplyId,
   PortId,
   MeshCmdOpenIndex,
   MeshCmdReqIndex,
   MeshCmdResIndex,
-  MeshCmdContinue,
   MeshCmdContinueIndex,
+  MeshCmdEndIndex,
+  MeshCmdSinkEndIndex,
 } from '../mesh-node'
 import { uid } from '../utils'
 import { ReadMesh } from './read-mesh'
@@ -101,6 +104,10 @@ export class PortStream<T> extends MeshStream<T> {
     return [uid(), MeshDataCmd.End, this._destURI, this._peerPortId!, replyTo, endOrError]
   }
 
+  createSinkEndMessage(endOrError: pull.EndOrError): MeshCmdSinkEnd {
+    return [uid(), MeshDataCmd.SinkEnd, this._destURI, this._peerPortId!, endOrError]
+  }
+
   createResMessage(replyTo: ReplyId, dataList: any[]): MeshCmdResponse {
     return [uid(), MeshDataCmd.Res, this._sourceURI, this._peerPortId!, replyTo, dataList]
   }
@@ -165,7 +172,8 @@ export class PortStream<T> extends MeshStream<T> {
     return this._sink
   }
 
-  sinkEnds() {
+  sinkEnds(endOrError: pull.EndOrError = true) {
+    this.postToMesh(this.createSinkEndMessage(endOrError))
     this._sinkEnd = true
     this.finish()
   }
@@ -239,12 +247,23 @@ export class PortStream<T> extends MeshStream<T> {
         break
       case MeshDataCmd.End:
         res = message as MeshCmdEnd
-        portId = res[MeshCmdResIndex.PeerPortId]
-        replyTo = res[MeshCmdResIndex.ReplyId]
+        portId = res[MeshCmdEndIndex.PeerPortId]
+        replyTo = res[MeshCmdEndIndex.ReplyId]
         readMesh = this._readMeshMap[replyTo]
         if (portId === this._portId && readMesh) {
           this._logger.debug('recv end: %4O', message)
           readMesh.end(res)
+          processed = true
+        }
+        break
+      case MeshDataCmd.SinkEnd:
+        res = message as MeshCmdSinkEnd
+        portId = res[MeshCmdSinkEndIndex.PeerPortId]
+        if (portId === this._portId) {
+          this._logger.debug('recv sinkEnd: %4O', message)
+          Object.keys(this._readMeshMap).forEach((key) => {
+            this._readMeshMap[key].sinkEnd(message as MeshCmdSinkEnd)
+          })
           processed = true
         }
         break

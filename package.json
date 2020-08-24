@@ -30,7 +30,8 @@
     "example:two-nodes": "DEBUG_NAME_WIDTH=20 DEBUG='mesh*' tsnd --respawn examples/two-nodes.ts",
     "example:three-nodes": "DEBUG_NAME_WIDTH=20 DEBUG='mesh*' tsnd --respawn examples/three-nodes.ts",
     "example:model": "DEBUG_NAME_WIDTH=20 DEBUG='mesh*,sb*' tsnd --respawn examples/model.ts",
-    "example:continue": "DEBUG_NAME_WIDTH=20 DEBUG='mesh*,sb*' tsnd --respawn examples/continue.ts"
+    "example:continue": "DEBUG_NAME_WIDTH=20 DEBUG='mesh*,sb*' tsnd --respawn examples/continue.ts",
+    "example:net": "DEBUG_NAME_WIDTH=20 DEBUG='mesh*,sb*' tsnd --respawn examples/net.ts"
   },
   "lint-staged": {
     "{src,test}/**/*.ts": [
@@ -63,9 +64,9 @@
     ],
     "coverageThreshold": {
       "global": {
-        "branches": 70,
-        "functions": 75,
-        "lines": 80,
+        "branches": 75,
+        "functions": 80,
+        "lines": 85,
         "statements": 85
       }
     },
@@ -101,6 +102,7 @@
     "replace-in-file": "^5.0.2",
     "rimraf": "^3.0.2",
     "shelljs": "^0.8.4",
+    "stream-to-pull-stream": "^1.7.3",
     "ts-jest": "^25.3.1",
     "ts-node": "^8.8.1",
     "ts-node-dev": "^1.0.0-pre.44",
@@ -116,7 +118,10 @@
   },
   "dependencies": {
     "@jacobbubu/debug": "^1.2.0",
+    "@jacobbubu/pull-length-prefixed": "^1.0.0",
     "@jacobbubu/pull-pushable": "^1.2.3",
-    "short-unique-id": "^3.0.3"
+    "@jacobbubu/pull-window": "^1.0.1",
+    "short-unique-id": "^3.0.3",
+    "zipson": "^0.2.12"
   }
 }

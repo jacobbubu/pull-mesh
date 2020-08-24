@@ -129,7 +129,7 @@ export class SinkMan<T> {
           self._buffer.push([endOrError, null])
           self._reading = false
           self.drain()
-          self._port.sinkEnds()
+          self._port.sinkEnds(endOrError)
           return
         }
 

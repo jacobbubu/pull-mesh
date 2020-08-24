@@ -7,6 +7,8 @@ import {
   MeshCmdResIndex,
   MeshCmdEnd,
   MeshCmdEndIndex,
+  MeshCmdSinkEnd,
+  MeshCmdSinkEndIndex,
   MeshCmdContinue,
 } from '../mesh-node'
 import { uid, noop } from '../utils'
@@ -72,8 +74,12 @@ export class ReadMesh<T> {
 
   // end from mesh
   end(message: MeshCmdEnd) {
-    this._readMeshTouch?.touch()
     const end = message[MeshCmdEndIndex.EndOrError]
+    this.finish(end)
+  }
+
+  sinkEnd(message: MeshCmdSinkEnd) {
+    const end = message[MeshCmdSinkEndIndex.EndOrError]
     this.finish(end)
   }
 

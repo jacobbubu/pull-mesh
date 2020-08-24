@@ -58,12 +58,21 @@ export enum MeshCmdEndIndex {
   EndOrError,
 }
 
+export enum MeshCmdSinkEndIndex {
+  Id = 0,
+  Cmd,
+  SourceURI,
+  PeerPortId,
+  EndOrError,
+}
+
 export enum MeshDataCmd {
   Open = 'open',
   Req = 'req',
   Res = 'res',
   Continue = 'con',
   End = 'end',
+  SinkEnd = 'sinkEnd',
 }
 
 export type Id = string
@@ -78,8 +87,15 @@ export type MeshCmdRequest = [Id, MeshDataCmd.Req, DestURI, PeerPortId, pull.Abo
 export type MeshCmdResponse = [Id, MeshDataCmd.Res, SourceURI, PeerPortId, ReplyId, any[]]
 export type MeshCmdContinue = [Id, MeshDataCmd.Continue, SourceURI, PeerPortId, ReplyId]
 export type MeshCmdEnd = [Id, MeshDataCmd.End, SourceURI, PeerPortId, ReplyId, pull.EndOrError]
+export type MeshCmdSinkEnd = [Id, MeshDataCmd.SinkEnd, SourceURI, PeerPortId, pull.EndOrError]
 
-export type MeshData = MeshCmdOpen | MeshCmdRequest | MeshCmdResponse | MeshCmdContinue | MeshCmdEnd
+export type MeshData =
+  | MeshCmdOpen
+  | MeshCmdRequest
+  | MeshCmdResponse
+  | MeshCmdContinue
+  | MeshCmdEnd
+  | MeshCmdSinkEnd
 
 export interface OpenPortResult {
   stream: pull.Duplex<any, any>
