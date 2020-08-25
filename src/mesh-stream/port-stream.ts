@@ -36,6 +36,7 @@ export class PortStream<T> extends MeshStream<T> {
   private _readTimeout: number
 
   private _isFirstRead: boolean = true
+  private _remoteSinkEnd = false
   private _sourceMan = new SourceMan<T>(this)
   private _sinkMan: SinkMan<T>
   private _readMeshMap: Map<Id, ReadMesh<T>> = new Map()
@@ -125,6 +126,13 @@ export class PortStream<T> extends MeshStream<T> {
     if (!this._source) {
       const self = this
       this._source = function (abort: pull.Abort, cb: pull.SourceCallback<T>) {
+        if (self._remoteSinkEnd) {
+          cb(self._remoteSinkEnd)
+          self._sourceEnd = abort
+          self.finish()
+          return
+        }
+
         if (abort) {
           // send abort message to mesh and ignore the result
           const readMesh = ReadMesh.createAbort(self, (id) => {
@@ -176,6 +184,11 @@ export class PortStream<T> extends MeshStream<T> {
     this.postToMesh(this.createSinkEndMessage(endOrError))
     this._sinkEnd = true
     this.finish()
+  }
+
+  remoteSinkEnds(message: MeshCmdSinkEnd) {
+    this._readMeshMap.forEach((readMesh) => readMesh.sinkEnd(message))
+    this._remoteSinkEnd = true
   }
 
   // process incoming message
@@ -260,8 +273,8 @@ export class PortStream<T> extends MeshStream<T> {
         res = message as MeshCmdSinkEnd
         portId = res[MeshCmdSinkEndIndex.PeerPortId]
         if (portId === this._portId) {
-          this._logger.debug('recv sinkEnd: %4O', message)
-          this._readMeshMap.forEach((readMesh) => readMesh.sinkEnd(message as MeshCmdSinkEnd))
+          this._logger.debug('recv sinkEnd: %4O', this._readMeshMap.size, message)
+          this.remoteSinkEnds(res)
           processed = true
         }
         break
