@@ -110,11 +110,11 @@ export class PortStream<T> extends MeshStream<T> {
   }
 
   createResMessage(replyTo: ReplyId, dataList: any[]): MeshCmdResponse {
-    return [uid(), MeshDataCmd.Res, this._sourceURI, this._peerPortId!, replyTo, dataList]
+    return [uid(), MeshDataCmd.Res, this._destURI, this._peerPortId!, replyTo, dataList]
   }
 
   createContinueMessage(replyTo: ReplyId): MeshCmdContinue {
-    return [uid(), MeshDataCmd.Continue, this._sourceURI, this._peerPortId!, replyTo]
+    return [uid(), MeshDataCmd.Continue, this._destURI, this._peerPortId!, replyTo]
   }
 
   postToMesh(message: MeshData) {

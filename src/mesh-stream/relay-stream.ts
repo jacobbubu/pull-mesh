@@ -215,25 +215,19 @@ function formatMessage(replacer: Replacer, message: MeshData) {
       break
     case MeshDataCmd.Res:
       newMessage = [...message] as MeshCmdResponse
-      newMessage[MeshCmdResIndex.SourceURI] = format(
-        replacer,
-        newMessage[MeshCmdResIndex.SourceURI]
-      )
+      newMessage[MeshCmdResIndex.DestURI] = format(replacer, newMessage[MeshCmdResIndex.DestURI])
       break
     case MeshDataCmd.Continue:
       newMessage = [...message] as MeshCmdContinue
-      newMessage[MeshCmdContinueIndex.SourceURI] = format(
+      newMessage[MeshCmdContinueIndex.DestURI] = format(
         replacer,
-        newMessage[MeshCmdContinueIndex.SourceURI]
+        newMessage[MeshCmdContinueIndex.DestURI]
       )
       break
 
     case MeshDataCmd.End:
       newMessage = [...message] as MeshCmdEnd
-      newMessage[MeshCmdResIndex.SourceURI] = format(
-        replacer,
-        newMessage[MeshCmdResIndex.SourceURI]
-      )
+      newMessage[MeshCmdResIndex.DestURI] = format(replacer, newMessage[MeshCmdResIndex.DestURI])
       break
     default:
       newMessage = message
