@@ -19,6 +19,9 @@ export class SinkMan<T> {
   private _abort: pull.Abort = null
   private readonly _buffer: [pull.EndOrError, T[] | null][] = []
   private _reading = false
+  private _timer: NodeJS.Timeout | null = null
+  private _dataList: T[] = []
+  private _ended = false
 
   constructor(private readonly _port: PortStream<T>) {}
 
@@ -49,21 +52,20 @@ export class SinkMan<T> {
     const internalReadMeshItem: InternalReadMeshItem = {
       replyTo,
     }
-    internalReadMeshItem.timeout = setTimeout(
-      timedOutFunc,
-      this._port.continueInterval,
-      internalReadMeshItem
-    )
+    if (this._port.continueInterval > 0) {
+      internalReadMeshItem.timeout = setTimeout(
+        timedOutFunc,
+        this._port.continueInterval,
+        internalReadMeshItem
+      )
+    }
 
     this._readMeshList.push(internalReadMeshItem)
     this.drain()
   }
 
   abort(abort: pull.Abort = true) {
-    this._abort = abort
-    if (!this._reading) {
-      this._port.sinkEnds()
-    }
+    this.read(abort)
   }
 
   drain() {
@@ -72,13 +74,13 @@ export class SinkMan<T> {
       if (endOrError) {
         // once end always end
         const item = this._readMeshList.shift()!
-        clearTimeout(item.timeout!)
+        if (item.timeout) clearTimeout(item.timeout)
         this._port.postToMesh(this._port.createEndMessage(item.replyTo, endOrError))
       } else {
         const r = this._buffer.shift()
         if (r) {
           const item = this._readMeshList.shift()!
-          clearTimeout(item.timeout!)
+          if (item.timeout) clearTimeout(item.timeout)
           const [end, dataList] = r
           if (end) {
             this._port.postToMesh(this._port.createEndMessage(item.replyTo, end))
@@ -100,32 +102,37 @@ export class SinkMan<T> {
     return this._port.logger
   }
 
-  // calling by sink
-  private read() {
-    if (this._rawRead && !this._reading) {
-      // use this._reading to prevent reentering
-      this._reading = true
+  private collect() {
+    if (this._timer) {
+      clearTimeout(this._timer)
+      this._timer = null
+    }
+    if (this._dataList.length > 0) {
+      this._buffer.push([null, this._dataList])
+      this._dataList = []
+    }
+  }
 
-      let dataList: T[] = []
-      let timer: NodeJS.Timeout | null = null
+  // calling by sink
+  private read(abort: pull.Abort = null) {
+    this._abort = abort
+    if (this._rawRead) {
+      if (!this._abort && this._reading) {
+        // use this._reading to prevent reentering for non-abort request
+        return
+      }
+
+      this._reading = true
 
       const rawRead = this._rawRead
       const self = this
 
-      const collect = () => {
-        if (timer) {
-          clearTimeout(timer)
-          timer = null
-        }
-        if (dataList.length > 0) {
-          self._buffer.push([null, dataList])
-          dataList = []
-        }
-      }
-
       rawRead(self._abort, function next(endOrError, data) {
+        if (self._ended) return
+
         if (endOrError) {
-          collect()
+          self._ended = true
+          self.collect()
           self._buffer.push([endOrError, null])
           self._reading = false
           self.drain()
@@ -133,20 +140,20 @@ export class SinkMan<T> {
           return
         }
 
-        dataList.push(data!)
+        self._dataList.push(data!)
 
         // start a timeout check after fetching data for the first time
-        if (!timer) {
-          timer = setTimeout(() => {
-            timer = null
-            collect()
+        if (!self._timer) {
+          self._timer = setTimeout(() => {
+            self._timer = null
+            self.collect()
             self.drain()
           }, self._windowTime)
         }
 
         // stop the rawRead loop when the previous _buffer has not been read
-        if (dataList.length >= self._limit || self._buffer.length > 0) {
-          collect()
+        if (self._dataList.length >= self._limit || self._buffer.length > 0) {
+          self.collect()
           self._reading = false
           self.drain()
           return

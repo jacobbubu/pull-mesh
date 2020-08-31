@@ -76,8 +76,8 @@ describe('timeout', () => {
   })
 
   it('two nodes with relayStream been interrupted during transmission', (done) => {
-    const continueInterval = 200
-    const readTimeout = 500
+    const continueInterval = 0 // DO NOT SEND continue message
+    const readTimeout = 200
     let count = 2
 
     const allDone = () => {
@@ -85,7 +85,7 @@ describe('timeout', () => {
         expect(nodeA.portStreamsLength).toBe(0)
         expect(nodeB.portStreamsLength).toBe(0)
         done()
-      }, 20)
+      }, 10)
     }
 
     const duplexOne = createDelayedDuplex([1, 2, 3], 500, (err, results) => {
