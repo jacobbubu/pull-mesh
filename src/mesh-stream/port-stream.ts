@@ -181,14 +181,18 @@ export class PortStream<T> extends MeshStream<T> {
   }
 
   sinkEnds(endOrError: pull.EndOrError = true) {
-    this.postToMesh(this.createSinkEndMessage(endOrError))
-    this._sinkEnd = true
-    this.finish()
+    if (!this._sinkEnd) {
+      this.postToMesh(this.createSinkEndMessage(endOrError))
+      this._sinkEnd = true
+      this.finish()
+    }
   }
 
   remoteSinkEnds(message: MeshCmdSinkEnd) {
-    this._readMeshMap.forEach((readMesh) => readMesh.sinkEnd(message))
-    this._remoteSinkEnd = true
+    if (this._remoteSinkEnd) {
+      this._readMeshMap.forEach((readMesh) => readMesh.sinkEnd(message))
+      this._remoteSinkEnd = true
+    }
   }
 
   // process incoming message
