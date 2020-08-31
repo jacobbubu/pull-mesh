@@ -128,7 +128,7 @@ export class PortStream<T> extends MeshStream<T> {
       this._source = function (abort: pull.Abort, cb: pull.SourceCallback<T>) {
         if (self._remoteSinkEnd) {
           cb(self._remoteSinkEnd)
-          self._sourceEnd = abort
+          self._sourceEnd = self._remoteSinkEnd
           self.finish()
           return
         }
