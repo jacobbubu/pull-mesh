@@ -33,7 +33,7 @@ export const makeAbortable = <In, Out>(duplex: pull.Duplex<In, Out>) => {
   const sinkAbortable = Abortable()
   return {
     source: pull(duplex.source, sourceAbortable),
-    sink: pull(duplex.sink, sinkAbortable),
+    sink: pull(sinkAbortable, duplex.sink),
     sourceAbortable,
     sinkAbortable,
   }
