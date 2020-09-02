@@ -12,7 +12,7 @@ describe('timeout', () => {
       setTimeout(() => {
         expect(nodeA.portStreamsLength).toBe(0)
         done()
-      }, 1e3)
+      }, 2e3)
     }
 
     const duplexOne = createDelayedDuplex([1, 2, 3], 1e3, (err, results) => {
