@@ -189,7 +189,7 @@ export class PortStream<T> extends MeshStream<T> {
   }
 
   remoteSinkEnds(message: MeshCmdSinkEnd) {
-    if (this._remoteSinkEnd) {
+    if (!this._remoteSinkEnd) {
       this._readMeshMap.forEach((readMesh) => readMesh.sinkEnd(message))
       this._remoteSinkEnd = true
     }
