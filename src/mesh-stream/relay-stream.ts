@@ -1,6 +1,5 @@
 import * as pull from 'pull-stream'
 import { pushable, Read } from '@jacobbubu/pull-pushable'
-import { Debug } from '@jacobbubu/debug'
 import { MeshStream } from './mesh-stream'
 import {
   MeshNode,
@@ -10,6 +9,7 @@ import {
   MeshCmdOpen,
   MeshCmdRequest,
   MeshCmdResponse,
+  MeshCmdSinkEnd,
   MeshCmdEnd,
   MeshCmdOpenIndex,
   MeshCmdReqIndex,
@@ -224,7 +224,10 @@ function formatMessage(replacer: Replacer, message: MeshData) {
         newMessage[MeshCmdContinueIndex.DestURI]
       )
       break
-
+    case MeshDataCmd.SinkEnd:
+      newMessage = [...message] as MeshCmdSinkEnd
+      newMessage[MeshCmdResIndex.DestURI] = format(replacer, newMessage[MeshCmdResIndex.DestURI])
+      break
     case MeshDataCmd.End:
       newMessage = [...message] as MeshCmdEnd
       newMessage[MeshCmdResIndex.DestURI] = format(replacer, newMessage[MeshCmdResIndex.DestURI])
