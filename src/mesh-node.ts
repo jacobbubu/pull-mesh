@@ -104,7 +104,7 @@ export interface OpenPortResult {
 export type OnOpenPort = (sourceURI: SourceURI, destURI: DestURI) => OpenPortResult | void
 
 export class MeshNode {
-  private readonly _onOpenPort: OnOpenPort | null = null
+  private readonly _onOpenPortHooks: OnOpenPort[] = []
   private readonly _name: string
   private readonly _dup: Dup = new Dup()
   private readonly _logger: Debug
@@ -113,13 +113,11 @@ export class MeshNode {
 
   constructor(onOpenPort?: OnOpenPort | null | string, nodeId?: string) {
     if (typeof onOpenPort === 'string') {
-      this._onOpenPort = null
       this._name = onOpenPort ?? uid3()
     } else if (typeof onOpenPort === 'function') {
-      this._onOpenPort = onOpenPort
+      this._onOpenPortHooks.push(onOpenPort)
       this._name = nodeId ?? uid3()
     } else {
-      this._onOpenPort = null
       this._name = nodeId ?? uid3()
     }
     this._logger = Debug.create('mesh').ns(this._name)
@@ -165,7 +163,7 @@ export class MeshNode {
   }
 
   broadcast(message: MeshData, source: MeshStream<any>) {
-    if (this.isNewOpenMessage(message) && this._onOpenPort) {
+    if (this.isNewOpenMessage(message) && this._onOpenPortHooks.length > 0) {
       this.openPort(message as MeshCmdOpen)
     }
 
@@ -189,21 +187,6 @@ export class MeshNode {
     })
   }
 
-  openPort(message: MeshCmdOpen) {
-    if (!this._onOpenPort) return false
-
-    const sourceURI = message[MeshCmdOpenIndex.SourceURI]
-    const destURI = message[MeshCmdOpenIndex.DestURI]
-
-    const result = this._onOpenPort(sourceURI, destURI)
-    if (!result) return false
-
-    const { stream, portOpts } = result
-    const port = this.createPortStream(destURI, sourceURI, portOpts)
-    pull(port, stream, port)
-    return true
-  }
-
   removePortStream(stream: PortStream<any>) {
     const pos = this._portStreams.indexOf(stream)
     if (pos >= 0) {
@@ -220,6 +203,29 @@ export class MeshNode {
       return true
     }
     return false
+  }
+
+  addOpenPortHook(hook: OnOpenPort) {
+    if (this._onOpenPortHooks.indexOf(hook) < 0) {
+      this._onOpenPortHooks.push(hook)
+    }
+  }
+
+  private openPort(message: MeshCmdOpen) {
+    let found = false
+    const sourceURI = message[MeshCmdOpenIndex.SourceURI]
+    const destURI = message[MeshCmdOpenIndex.DestURI]
+
+    for (let i = 0; i < this._onOpenPortHooks.length; i++) {
+      const result = this._onOpenPortHooks[i](sourceURI, destURI)
+      if (result) {
+        const { stream, portOpts } = result
+        const port = this.createPortStream(destURI, sourceURI, portOpts)
+        pull(port, stream, port)
+        found = true
+      }
+    }
+    return found
   }
 
   private sortRelayStreams() {
