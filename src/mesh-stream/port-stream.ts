@@ -133,14 +133,16 @@ export class PortStream<T> extends MeshStream<T> {
           return
         }
 
+        const isFirstRead = self._isFirstRead
+        self._isFirstRead = false
+
         if (abort) {
           // send abort message to mesh and ignore the result
           const readMesh = ReadMesh.createAbort(self, (id) => {
             self._readMeshMap.delete(id)
           })
           self._readMeshMap.set(readMesh.id, readMesh)
-          readMesh.postToMesh(self._isFirstRead, abort)
-          self._isFirstRead = false
+          readMesh.postToMesh(isFirstRead, abort)
           self._sourceMan.abort(abort)
           self._sourceEnd = abort
           self.finish()
@@ -166,8 +168,7 @@ export class PortStream<T> extends MeshStream<T> {
         })
 
         self._readMeshMap.set(readMesh.id, readMesh)
-        readMesh.postToMesh(self._isFirstRead)
-        self._isFirstRead = false
+        readMesh.postToMesh(isFirstRead)
       }
     }
     return this._source
