@@ -125,6 +125,7 @@ export class PortStream<T> extends MeshStream<T> {
   get source() {
     if (!this._source) {
       const self = this
+
       this._source = function (abort: pull.Abort, cb: pull.SourceCallback<T>) {
         if (self._remoteSinkEnd) {
           cb(self._remoteSinkEnd)
@@ -150,25 +151,11 @@ export class PortStream<T> extends MeshStream<T> {
         }
 
         // return if current cb has been satisfied
-        if (self._sourceMan.addCb(cb)) return
-
-        const readMesh = ReadMesh.create(self, function next(id, endOrError, dataList) {
-          self._readMeshMap.delete(id)
-          if (endOrError) {
-            self._logger.log('sourceMan end', endOrError)
-            self._sourceMan.end(endOrError)
-            self._sourceEnd = endOrError
-            if (endOrError instanceof Error) {
-              self._sinkMan.abort(endOrError)
-            }
-            self.finish()
-          } else {
-            self._sourceMan.pushList(dataList!)
-          }
-        })
-
-        self._readMeshMap.set(readMesh.id, readMesh)
-        readMesh.postToMesh(isFirstRead)
+        self._sourceMan.addCb(cb)
+        if (self._sourceMan.drainLevel > 0 || !self._sourceMan.needNewData()) {
+          return
+        }
+        self.createReadMesh(isFirstRead)
       }
     }
     return this._source
@@ -295,5 +282,30 @@ export class PortStream<T> extends MeshStream<T> {
       this._finished = true
       this._node.removePortStream(this)
     }
+  }
+
+  private createReadMesh(isFirstRead: boolean) {
+    const self = this
+    const readMesh = ReadMesh.create(this, function next(id, endOrError, dataList) {
+      self._readMeshMap.delete(id)
+
+      if (endOrError) {
+        self._logger.log('sourceMan end', endOrError)
+        self._sourceMan.end(endOrError)
+        self._sourceEnd = endOrError
+        if (endOrError instanceof Error) {
+          self._sinkMan.abort(endOrError)
+        }
+        self.finish()
+      } else {
+        self._sourceMan.pushList(dataList!)
+        if (self._sourceMan.drainLevel === 0 && self._sourceMan.needNewData()) {
+          self.createReadMesh(false)
+        }
+      }
+    })
+
+    this._readMeshMap.set(readMesh.id, readMesh)
+    readMesh.postToMesh(isFirstRead)
   }
 }

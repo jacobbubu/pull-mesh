@@ -4,11 +4,16 @@ import { PortStream } from './port-stream'
 export class SourceMan<T> {
   private _cbs: pull.SourceCallback<T>[] = []
   private _buffer: [pull.EndOrError, T | undefined][] = []
+  private _drainLevel = 0
 
   constructor(private readonly _port: PortStream<T>) {}
 
   private get logger() {
     return this._port.logger
+  }
+
+  get drainLevel() {
+    return this._drainLevel
   }
 
   addCb(cb: pull.SourceCallback<T>) {
@@ -42,16 +47,24 @@ export class SourceMan<T> {
     return this.drain()
   }
 
+  needNewData() {
+    return this._cbs.length > this._buffer.length
+  }
+
   private drain() {
-    while (this._buffer.length > 0) {
-      const cb = this._cbs.shift()
-      if (cb) {
-        const [end, data] = this._buffer.shift()!
-        cb(end, data)
-      } else {
-        break
+    this._drainLevel++
+    try {
+      while (this._buffer.length > 0) {
+        const cb = this._cbs.shift()
+        if (cb) {
+          const [end, data] = this._buffer.shift()!
+          cb(end, data)
+        } else {
+          break
+        }
       }
+    } finally {
+      this._drainLevel--
     }
-    return this._cbs.length === 0
   }
 }
