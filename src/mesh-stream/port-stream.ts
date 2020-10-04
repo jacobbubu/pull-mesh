@@ -151,11 +151,9 @@ export class PortStream<T> extends MeshStream<T> {
         }
 
         // return if current cb has been satisfied
-        self._sourceMan.addCb(cb)
-        if (self._sourceMan.drainLevel > 0 || !self._sourceMan.needNewData()) {
-          return
+        if (self._sourceMan.addCb(cb)) {
+          self.createReadMesh(isFirstRead)
         }
-        self.createReadMesh(isFirstRead)
       }
     }
     return this._source
@@ -298,8 +296,7 @@ export class PortStream<T> extends MeshStream<T> {
         }
         self.finish()
       } else {
-        self._sourceMan.pushList(dataList!)
-        if (self._sourceMan.drainLevel === 0 && self._sourceMan.needNewData()) {
+        if (self._sourceMan.pushList(dataList!)) {
           self.createReadMesh(false)
         }
       }
