@@ -9,7 +9,6 @@ interface RefCountTimer {
 }
 
 class RefCountTimer extends EventEmitter {
-  private _count = 0
   private _timer: NodeJS.Timeout | null = null
 
   constructor() {
