@@ -78,7 +78,7 @@
   },
   "devDependencies": {
     "@jacobbubu/pull-abortable": "^1.0.1",
-    "@jacobbubu/scuttlebutt-pull": "^1.6.15",
+    "@jacobbubu/scuttlebutt-pull": "^1.9.1",
     "@types/jest": "^25.2.1",
     "@types/node": "^13.11.0",
     "@types/pull-stream": "^3.6.2",
@@ -118,7 +118,7 @@
   "dependencies": {
     "@jacobbubu/debug": "^1.2.0",
     "@jacobbubu/pull-length-prefixed": "^1.0.1",
-    "@jacobbubu/pull-pushable": "^1.2.5",
+    "@jacobbubu/pull-pushable": "^1.3.0",
     "@jacobbubu/pull-through": "^1.1.2",
     "@jacobbubu/pull-window": "^1.0.2",
     "pull-stream": "^3.6.14",
