@@ -162,6 +162,7 @@ export class RelayStream extends MeshStream<MeshData> {
   forward(rawMessage: MeshData) {
     const encoded = this.preForward(rawMessage)
     this.emit('outgoing', rawMessage, encoded)
+    this._logger.debug(`forward with relayStream(${this._name}):`, { rawMessage, encoded })
     ;(this.source as Read<MeshData>).push(encoded)
   }
 
