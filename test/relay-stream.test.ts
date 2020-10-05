@@ -1,5 +1,13 @@
 import * as pull from 'pull-stream'
-import { MeshNode, MeshDataIndex, MeshDataCmd, VarsType, makeDestPrefixFilter } from '../src'
+import {
+  MeshNode,
+  MeshDataIndex,
+  MeshDataCmd,
+  VarsType,
+  makeDestFilter,
+  makeDestPrefixFilter,
+  MeshData,
+} from '../src'
 
 import { createDuplex } from './common'
 
@@ -120,7 +128,7 @@ describe('relay-stream', () => {
     pull(portNum, duplexOne, portNum)
   })
 
-  it('outgoingFilter', (done) => {
+  it('outgoing filter', (done) => {
     let count = 2
     const duplexOne = createDuplex([1, 2, 3], (err, results) => {
       expect(err).toBeFalsy()
@@ -176,7 +184,7 @@ describe('relay-stream', () => {
     pull(portNum, duplexOne, portNum)
   })
 
-  it('prefix outgoingFilter', (done) => {
+  it('prefix outgoing filter', (done) => {
     let count = 2
     const duplexOne = createDuplex([1, 2, 3], (err, results) => {
       expect(err).toBeFalsy()
@@ -269,6 +277,61 @@ describe('relay-stream', () => {
       console.log('c2b', message)
       c2bResult.push(message[MeshDataIndex.Cmd])
     })
+
+    const portNum = nodeA.createPortStream('prefix_a', 'prefix_c')
+    pull(portNum, duplexOne, portNum)
+  })
+
+  it('incoming filter', (done) => {
+    let count = 2
+    const duplexOne = createDuplex([1, 2, 3], (err, results) => {
+      expect(err).toBeFalsy()
+      expect(results).toEqual(['a', 'b', 'c'])
+      if (--count === 0) finished()
+    })
+
+    const nodeA = new MeshNode('A')
+    const nodeB = new MeshNode('B')
+    const nodeC = new MeshNode((_, destURI) => {
+      if (destURI === 'prefix_c') {
+        const duplexTwo = createDuplex(['a', 'b', 'c'], (err, results) => {
+          expect(err).toBeFalsy()
+          expect(results).toEqual([1, 2, 3])
+          if (--count === 0) finished()
+        })
+        return {
+          stream: duplexTwo,
+        }
+      }
+    }, 'C')
+
+    function finished() {
+      expect(b2aIncomings.length).toBe(0)
+      done()
+    }
+    const b2aIncomings: MeshData[] = []
+
+    const a2b = nodeA.createRelayStream({
+      name: 'A->B',
+    })
+
+    const b2a = nodeB.createRelayStream({
+      name: 'B->A',
+      // only messages containing the prefix_b prefix in the destURI
+      //  will be entered in the current relayStream.
+      incomingFilter: makeDestFilter((destURI) => {
+        return destURI.startsWith('prefix_b')
+      }),
+    })
+    b2a.on('incoming', (message) => {
+      b2aIncomings.push(message)
+    })
+
+    pull(a2b, b2a, a2b)
+
+    const a2c = nodeA.createRelayStream({ priority: 1, name: 'A->C' })
+    const c2a = nodeC.createRelayStream('C->A')
+    pull(a2c, c2a, a2c)
 
     const portNum = nodeA.createPortStream('prefix_a', 'prefix_c')
     pull(portNum, duplexOne, portNum)

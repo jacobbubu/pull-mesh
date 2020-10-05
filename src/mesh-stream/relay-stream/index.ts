@@ -29,6 +29,7 @@ export interface RelayStreamOptions {
   isDictator: boolean
   vars: VarsType
   outgoingFilter: (message: MeshData) => boolean
+  incomingFilter: (message: MeshData) => boolean
 }
 
 type Replacer = [RegExp, string][]
@@ -65,6 +66,7 @@ export interface RelayStream {
 export class RelayStream extends MeshStream<MeshData> {
   private _name: string
   private _outgoingFilter: FilterFunc | null
+  private _incomingFilter: FilterFunc | null
   private _vars: VarsType
   private _priority: number
   private _isDictator: boolean
@@ -78,6 +80,7 @@ export class RelayStream extends MeshStream<MeshData> {
     super(node)
     this._name = _opts.name ?? uid2()
     this._outgoingFilter = _opts.outgoingFilter ?? null
+    this._incomingFilter = _opts.incomingFilter ?? null
     this._vars = _opts.vars ?? {}
     this._priority = _opts.priority ?? 100
     this._isDictator = _opts.isDictator ?? false
@@ -98,6 +101,10 @@ export class RelayStream extends MeshStream<MeshData> {
 
   get outgoingFilter() {
     return this._outgoingFilter
+  }
+
+  get incomingFilter() {
+    return this._incomingFilter
   }
 
   get source() {
@@ -145,9 +152,13 @@ export class RelayStream extends MeshStream<MeshData> {
             const id = message[MeshDataIndex.Id]
             if (!dup.check(id)) {
               dup.track(id)
-              const encoded = self.preBroadcast(message)
-              self.emit('incoming', message, encoded)
-              self._node.broadcast(encoded, self)
+              if (self._incomingFilter && !self._incomingFilter(message)) {
+                self.emit('ignored', message)
+              } else {
+                const encoded = self.preBroadcast(message)
+                self.emit('incoming', message, encoded)
+                self._node.broadcast(encoded, self)
+              }
             } else {
               self.emit('ignored', message)
             }
