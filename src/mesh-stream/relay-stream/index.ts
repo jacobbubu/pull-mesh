@@ -1,6 +1,6 @@
 import * as pull from 'pull-stream'
 import { pushable, Read } from '@jacobbubu/pull-pushable'
-import { MeshStream } from './mesh-stream'
+import { MeshStream } from '../mesh-stream'
 import {
   MeshNode,
   MeshData,
@@ -16,8 +16,8 @@ import {
   MeshCmdResIndex,
   MeshCmdContinueIndex,
   MeshCmdContinue,
-} from '../mesh-node'
-import { uid2, escapeRegExp } from '../utils'
+} from '../../mesh-node'
+import { uid2, escapeRegExp } from '../../utils'
 
 export type RelayContext = Record<string, any>
 export type FilterFunc = (message: MeshData) => boolean
@@ -28,7 +28,7 @@ export interface RelayStreamOptions {
   priority: number
   isDictator: boolean
   vars: VarsType
-  filter: (message: MeshData) => boolean
+  outgoingFilter: (message: MeshData) => boolean
 }
 
 type Replacer = [RegExp, string][]
@@ -64,7 +64,7 @@ export interface RelayStream {
 
 export class RelayStream extends MeshStream<MeshData> {
   private _name: string
-  private _filter: FilterFunc | null
+  private _outgoingFilter: FilterFunc | null
   private _vars: VarsType
   private _priority: number
   private _isDictator: boolean
@@ -77,7 +77,7 @@ export class RelayStream extends MeshStream<MeshData> {
   constructor(node: MeshNode, private readonly _opts: Partial<RelayStreamOptions> = {}) {
     super(node)
     this._name = _opts.name ?? uid2()
-    this._filter = _opts.filter ?? null
+    this._outgoingFilter = _opts.outgoingFilter ?? null
     this._vars = _opts.vars ?? {}
     this._priority = _opts.priority ?? 100
     this._isDictator = _opts.isDictator ?? false
@@ -96,8 +96,8 @@ export class RelayStream extends MeshStream<MeshData> {
     return this._priority
   }
 
-  get filter() {
-    return this._filter
+  get outgoingFilter() {
+    return this._outgoingFilter
   }
 
   get source() {
@@ -247,3 +247,5 @@ function formatMessage(replacer: Replacer, message: MeshData) {
   }
   return newMessage
 }
+
+export * from './filters'
