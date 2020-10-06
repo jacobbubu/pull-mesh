@@ -20,3 +20,4 @@ export function wrap(duplex: pull.Duplex<any, any>, opts: Partial<json.JsonOptio
 
 export * from './mesh-node'
 export * from './mesh-stream'
+export { uid, uid2, uid3, escapeRegExp } from './utils'
