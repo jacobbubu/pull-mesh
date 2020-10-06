@@ -1,7 +1,7 @@
 import * as pull from 'pull-stream'
 import { MeshNode, OnOpenPort } from '../src'
 
-import { createDuplex } from './common'
+import { createDuplex, delay } from './common'
 
 describe('basic', () => {
   it('one hook', (done) => {
@@ -65,7 +65,8 @@ describe('basic', () => {
       if (--count === 0) done()
     })
 
-    const openPortHook1: OnOpenPort = (_, destURI) => {
+    const openPortHook1: OnOpenPort = async (_, destURI) => {
+      await delay(100)
       if (destURI === 'Two') {
         const stream = createDuplex(['a', 'b', 'c'], (err, results) => {
           expect(err).toBeFalsy()

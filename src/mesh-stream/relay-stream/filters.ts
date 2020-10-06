@@ -1,21 +1,8 @@
-import {
-  MeshData,
-  MeshDataIndex,
-  MeshDataCmd,
-  MeshCmdOpenIndex,
-  MeshCmdReqIndex,
-} from '../../mesh-node'
+import { MeshData, MeshDataIndex } from '../../mesh-node'
 
 export function makeDestFilter(fn: (destURI: string) => boolean) {
   return function (message: MeshData) {
-    let destURI: string
-    const cmd = message[MeshDataIndex.Cmd]
-    if (cmd === MeshDataCmd.Open) {
-      // only the destURI of an Open message is the fourth item.
-      destURI = message[MeshCmdOpenIndex.DestURI]
-    } else {
-      destURI = message[MeshCmdReqIndex.DestURI]
-    }
+    const destURI = message[MeshDataIndex.DestURI]
     return fn(destURI)
   }
 }

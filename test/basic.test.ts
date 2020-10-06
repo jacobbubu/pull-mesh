@@ -1,7 +1,7 @@
 import * as pull from 'pull-stream'
 import { MeshNode } from '../src'
 
-import { createDuplex } from './common'
+import { createDuplex, delay } from './common'
 
 describe('basic', () => {
   it('one node', (done) => {
@@ -13,6 +13,32 @@ describe('basic', () => {
     })
 
     const node = new MeshNode((_, destURI) => {
+      if (destURI === 'Two') {
+        const duplexTwo = createDuplex(['a', 'b', 'c'], (err, results) => {
+          expect(err).toBeFalsy()
+          expect(results).toEqual([1, 2, 3])
+          if (--count === 0) done()
+        })
+        return {
+          stream: duplexTwo,
+        }
+      }
+    }, 'A')
+
+    const portNum = node.createPortStream('One', 'Two')
+    pull(portNum, duplexOne, portNum)
+  })
+
+  it('one node with async onOpenPort', (done) => {
+    let count = 2
+    const duplexOne = createDuplex([1, 2, 3], (err, results) => {
+      expect(err).toBeFalsy()
+      expect(results).toEqual(['a', 'b', 'c'])
+      if (--count === 0) done()
+    })
+
+    const node = new MeshNode(async (_, destURI) => {
+      await delay(100)
       if (destURI === 'Two') {
         const duplexTwo = createDuplex(['a', 'b', 'c'], (err, results) => {
           expect(err).toBeFalsy()

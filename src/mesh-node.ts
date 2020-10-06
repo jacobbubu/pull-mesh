@@ -8,11 +8,14 @@ import {
   PortStreamOptions,
   MeshStream,
 } from './mesh-stream'
+import AsyncLock = require('async-lock')
 import { Debug } from '@jacobbubu/debug'
 
 export enum MeshDataIndex {
   Id = 0,
   Cmd,
+  SourceURI,
+  DestURI,
 }
 
 export enum MeshCmdOpenIndex {
@@ -27,6 +30,7 @@ export enum MeshCmdOpenIndex {
 export enum MeshCmdReqIndex {
   Id = 0,
   Cmd,
+  SourceURI,
   DestURI,
   PeerPortId,
   Abort,
@@ -35,32 +39,36 @@ export enum MeshCmdReqIndex {
 export enum MeshCmdResIndex {
   Id = 0,
   Cmd,
+  SourceURI,
   DestURI,
-  PeerPortId,
+  PortId,
   ReplyId,
   Payload,
-}
-
-export enum MeshCmdContinueIndex {
-  Id = 0,
-  Cmd,
-  DestURI,
-  PeerPortId,
-  ReplyId,
 }
 
 export enum MeshCmdEndIndex {
   Id = 0,
   Cmd,
+  SourceURI,
+  DestURI,
+  PortId,
+  ReplyId,
+  EndOrError,
+}
+
+export enum MeshCmdContinueIndex {
+  Id = 0,
+  Cmd,
+  SourceURI,
   DestURI,
   PeerPortId,
   ReplyId,
-  EndOrError,
 }
 
 export enum MeshCmdSinkEndIndex {
   Id = 0,
   Cmd,
+  SourceURI,
   DestURI,
   PeerPortId,
   EndOrError,
@@ -78,16 +86,23 @@ export enum MeshDataCmd {
 export type Id = string
 export type ReplyId = Id
 export type PortId = Id
-export type PeerPortId = PortId
+export type PeerPortId = Id
 export type SourceURI = string
 export type DestURI = string
 
 export type MeshCmdOpen = [Id, MeshDataCmd.Open, SourceURI, DestURI, PortId, pull.Abort]
-export type MeshCmdRequest = [Id, MeshDataCmd.Req, DestURI, PeerPortId, pull.Abort]
-export type MeshCmdResponse = [Id, MeshDataCmd.Res, DestURI, PeerPortId, ReplyId, any[]]
-export type MeshCmdContinue = [Id, MeshDataCmd.Continue, DestURI, PeerPortId, ReplyId]
-export type MeshCmdEnd = [Id, MeshDataCmd.End, DestURI, PeerPortId, ReplyId, pull.EndOrError]
-export type MeshCmdSinkEnd = [Id, MeshDataCmd.SinkEnd, DestURI, PeerPortId, pull.EndOrError]
+export type MeshCmdRequest = [Id, MeshDataCmd.Req, SourceURI, DestURI, PeerPortId, pull.Abort]
+export type MeshCmdResponse = [Id, MeshDataCmd.Res, SourceURI, DestURI, PortId, ReplyId, any[]]
+export type MeshCmdContinue = [Id, MeshDataCmd.Continue, SourceURI, DestURI, PeerPortId, ReplyId]
+export type MeshCmdEnd = [Id, MeshDataCmd.End, SourceURI, DestURI, PortId, ReplyId, pull.EndOrError]
+export type MeshCmdSinkEnd = [
+  Id,
+  MeshDataCmd.SinkEnd,
+  SourceURI,
+  DestURI,
+  PeerPortId,
+  pull.EndOrError
+]
 
 export type MeshData =
   | MeshCmdOpen
@@ -101,7 +116,12 @@ export interface OpenPortResult {
   stream: pull.Duplex<any, any>
   portOpts?: Partial<PortStreamOptions>
 }
-export type OnOpenPort = (sourceURI: SourceURI, destURI: DestURI) => OpenPortResult | void
+export type OnOpenPort = (
+  sourceURI: SourceURI,
+  destURI: DestURI
+) => Promise<OpenPortResult | void> | OpenPortResult | void
+
+const LockName = 'PortStreamList'
 
 export class MeshNode {
   private readonly _onOpenPortHooks: OnOpenPort[] = []
@@ -110,6 +130,8 @@ export class MeshNode {
   private readonly _logger: Debug
   private readonly _relayStreams: RelayStream[] = []
   private readonly _portStreams: PortStream<any>[] = []
+  private _portStreamCounter = 0
+  private _lock: AsyncLock = new AsyncLock()
 
   constructor(onOpenPort?: OnOpenPort | null | string, nodeId?: string) {
     if (typeof onOpenPort === 'string') {
@@ -143,6 +165,14 @@ export class MeshNode {
     return this._relayStreams.length
   }
 
+  get portStreams() {
+    return this._portStreams as ReadonlyArray<PortStream<any>>
+  }
+
+  getNextPortStreamCounter() {
+    return this._portStreamCounter++
+  }
+
   createPortStream<T>(sourceURI: string, destURI: string, opts?: Partial<PortStreamOptions>) {
     const stream = new PortStream<T>(sourceURI, destURI, this, opts)
     this._portStreams.push(stream)
@@ -162,38 +192,42 @@ export class MeshNode {
     return stream
   }
 
-  broadcast(message: MeshData, source: MeshStream<any>) {
-    if (this.isNewOpenMessage(message) && this._onOpenPortHooks.length > 0) {
-      this.openPort(message as MeshCmdOpen)
-    }
-
-    for (let i = 0; i < this._portStreams.length; i++) {
-      const stream = this._portStreams[i]
-      if (stream !== source && this._portStreams[i].process(message)) {
-        return
+  async broadcast(message: MeshData, source: MeshStream<any>) {
+    return this._lock.acquire(LockName, async () => {
+      if (this.isNewOpenMessage(message) && this._onOpenPortHooks.length > 0) {
+        await this.openPort(message as MeshCmdOpen)
       }
-    }
 
-    this._relayStreams.forEach((stream) => {
-      if (stream !== source) {
-        if (stream.outgoingFilter) {
-          if (stream.outgoingFilter(message)) {
-            stream.forward(message)
-          }
-        } else {
-          stream.forward(message)
+      for (let i = 0; i < this._portStreams.length; i++) {
+        const stream = this._portStreams[i]
+        if (stream !== source && this._portStreams[i].process(message)) {
+          return
         }
       }
+
+      this._relayStreams.forEach((stream) => {
+        if (stream !== source) {
+          if (stream.outgoingFilter) {
+            if (stream.outgoingFilter(message)) {
+              stream.forward(message)
+            }
+          } else {
+            stream.forward(message)
+          }
+        }
+      })
     })
   }
 
   removePortStream(stream: PortStream<any>) {
-    const pos = this._portStreams.indexOf(stream)
-    if (pos >= 0) {
-      this._portStreams.splice(pos, 1)
-      return true
-    }
-    return false
+    return this._lock.acquire(LockName, async () => {
+      const pos = this._portStreams.indexOf(stream)
+      if (pos >= 0) {
+        this._portStreams.splice(pos, 1)
+        return true
+      }
+      return false
+    })
   }
 
   removeRelayStream(stream: RelayStream) {
@@ -211,13 +245,13 @@ export class MeshNode {
     }
   }
 
-  private openPort(message: MeshCmdOpen) {
+  private async openPort(message: MeshCmdOpen) {
     let found = false
     const sourceURI = message[MeshCmdOpenIndex.SourceURI]
     const destURI = message[MeshCmdOpenIndex.DestURI]
 
     for (let i = 0; i < this._onOpenPortHooks.length; i++) {
-      const result = this._onOpenPortHooks[i](sourceURI, destURI)
+      const result = await this._onOpenPortHooks[i](sourceURI, destURI)
       if (result) {
         const { stream, portOpts } = result
         const port = this.createPortStream(destURI, sourceURI, portOpts)
@@ -243,9 +277,11 @@ export class MeshNode {
   private isNewOpenMessage(message: MeshData) {
     if (message[MeshDataIndex.Cmd] !== MeshDataCmd.Open) return false
 
+    const destURI = message[MeshDataIndex.DestURI]
     const portId = (message as MeshCmdOpen)[MeshCmdOpenIndex.PortId]
     for (let i = 0; i < this._portStreams.length; i++) {
-      if (portId === this._portStreams[i].peerPortId) {
+      const portStream = this._portStreams[i]
+      if (destURI === portStream.sourceURI && portId === portStream.peerPortId) {
         return false
       }
     }

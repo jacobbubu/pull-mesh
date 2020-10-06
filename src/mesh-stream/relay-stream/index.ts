@@ -17,7 +17,7 @@ import {
   MeshCmdContinueIndex,
   MeshCmdContinue,
 } from '../../mesh-node'
-import { uid2, escapeRegExp } from '../../utils'
+import { uid2, escapeRegExp, isPromise } from '../../utils'
 
 export type RelayContext = Record<string, any>
 export type FilterFunc = (message: MeshData) => boolean
@@ -157,7 +157,12 @@ export class RelayStream extends MeshStream<MeshData> {
               } else {
                 const encoded = self.preBroadcast(message)
                 self.emit('incoming', message, encoded)
-                self._node.broadcast(encoded, self)
+                const result = self._node.broadcast(encoded, self)
+                if (isPromise(result)) {
+                  // tslint:disable-next-line no-floating-promises
+                  result.then(() => rawRead(self._sourceEnd, next))
+                  return
+                }
               }
             } else {
               self.emit('ignored', message)

@@ -1,6 +1,8 @@
 import * as pull from 'pull-stream'
 import Abortable from '@jacobbubu/pull-abortable'
 
+export const delay = (ms: number) => new Promise((resolve) => setTimeout(() => resolve(), ms))
+
 export const createDuplex = (values: any[], cb: (err: pull.EndOrError, data: any) => void) => {
   return {
     source: pull.values(values),

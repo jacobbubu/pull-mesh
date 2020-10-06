@@ -9,22 +9,24 @@ import {
   MeshCmdResponse,
   MeshCmdRequest,
   MeshCmdOpen,
+  MeshCmdReqIndex,
   MeshDataCmd,
   MeshCmdContinue,
   Id,
   ReplyId,
   PortId,
+  PeerPortId,
   MeshCmdOpenIndex,
-  MeshCmdReqIndex,
   MeshCmdResIndex,
   MeshCmdContinueIndex,
   MeshCmdEndIndex,
   MeshCmdSinkEndIndex,
 } from '../mesh-node'
-import { uid } from '../utils'
+import { uid, uid3 } from '../utils'
 import { ReadMesh } from './read-mesh'
 import { SourceMan } from './source-man'
 import { SinkMan } from './sink-man'
+import { assert } from 'console'
 
 export interface PortStreamOptions {
   continueInterval: number
@@ -40,9 +42,9 @@ export class PortStream<T> extends MeshStream<T> {
   private _sourceMan = new SourceMan<T>(this)
   private _sinkMan: SinkMan<T>
   private _readMeshMap: Map<Id, ReadMesh<T>> = new Map()
-
-  private readonly _portId = uid()
-  private _peerPortId: PortId | null = null
+  private _portId: PortId
+  private _peerPortId: PeerPortId | null = null
+  private _opened = false
 
   public kind = 'PORT'
 
@@ -53,6 +55,7 @@ export class PortStream<T> extends MeshStream<T> {
     opts: Partial<PortStreamOptions> = {}
   ) {
     super(node)
+    this._portId = node.getNextPortStreamCounter().toString()
     this._continueInterval = opts.continueInterval ?? 10e3
     this._readTimeout = opts.readTimeout ?? 15e3
 
@@ -73,6 +76,18 @@ export class PortStream<T> extends MeshStream<T> {
     return this._logger
   }
 
+  get portId() {
+    return this._portId
+  }
+
+  get peerPortId() {
+    return this._peerPortId
+  }
+
+  get sourceURI() {
+    return this._sourceURI
+  }
+
   get destURI() {
     return this._destURI
   }
@@ -85,40 +100,48 @@ export class PortStream<T> extends MeshStream<T> {
     return this._readTimeout
   }
 
-  get portId() {
-    return this._portId
-  }
-
-  get peerPortId() {
-    return this._peerPortId
-  }
-
   createOpenMessage(abort: pull.Abort, id: Id): MeshCmdOpen {
     return [id, MeshDataCmd.Open, this._sourceURI, this._destURI, this._portId, abort]
   }
 
   createReqMessage(abort: pull.Abort, id: Id): MeshCmdRequest {
-    return [id, MeshDataCmd.Req, this._destURI, this._peerPortId!, abort]
-  }
-
-  createEndMessage(replyTo: ReplyId, endOrError: pull.EndOrError): MeshCmdEnd {
-    return [uid(), MeshDataCmd.End, this._destURI, this._peerPortId!, replyTo, endOrError]
-  }
-
-  createSinkEndMessage(endOrError: pull.EndOrError): MeshCmdSinkEnd {
-    return [uid(), MeshDataCmd.SinkEnd, this._destURI, this._peerPortId!, endOrError]
+    return [id, MeshDataCmd.Req, this._sourceURI, this._destURI, this._peerPortId!, abort]
   }
 
   createResMessage(replyTo: ReplyId, dataList: any[]): MeshCmdResponse {
-    return [uid(), MeshDataCmd.Res, this._destURI, this._peerPortId!, replyTo, dataList]
+    return [uid(), MeshDataCmd.Res, this._sourceURI, this._destURI, this._portId, replyTo, dataList]
+  }
+
+  createEndMessage(replyTo: ReplyId, endOrError: pull.EndOrError): MeshCmdEnd {
+    return [
+      uid(),
+      MeshDataCmd.End,
+      this._sourceURI,
+      this._destURI,
+      this._portId,
+      replyTo,
+      endOrError,
+    ]
+  }
+
+  createSinkEndMessage(endOrError: pull.EndOrError): MeshCmdSinkEnd {
+    return [
+      uid(),
+      MeshDataCmd.SinkEnd,
+      this._sourceURI,
+      this._destURI,
+      this._peerPortId!,
+      endOrError,
+    ]
   }
 
   createContinueMessage(replyTo: ReplyId): MeshCmdContinue {
-    return [uid(), MeshDataCmd.Continue, this._destURI, this._peerPortId!, replyTo]
+    return [uid(), MeshDataCmd.Continue, this._sourceURI, this._destURI, this._peerPortId!, replyTo]
   }
 
   postToMesh(message: MeshData) {
     this._logger.debug('post to mesh: %4O', message)
+    // tslint:disable-next-line no-floating-promises
     this._node.broadcast(message, this)
   }
 
@@ -193,30 +216,38 @@ export class PortStream<T> extends MeshStream<T> {
     let abort
     let matched
     let portId
+    let peerPortId
 
     switch (message[MeshDataIndex.Cmd]) {
       case MeshDataCmd.Open:
-      case MeshDataCmd.Req:
-        cmd = message[MeshDataIndex.Cmd]
+        if (this._opened) return false
 
-        if (cmd === MeshDataCmd.Open) {
-          req = message as MeshCmdOpen
-          destURI = message[MeshCmdOpenIndex.DestURI]
-          abort = req[MeshCmdOpenIndex.Abort]
-          portId = req[MeshCmdOpenIndex.PortId]
-          matched = !this._peerPortId && portId !== this._portId && destURI === this._sourceURI
-          if (matched) {
-            this._peerPortId = this._peerPortId ?? portId
+        req = message as MeshCmdOpen
+        destURI = message[MeshCmdOpenIndex.DestURI]
+        abort = req[MeshCmdOpenIndex.Abort]
+        if (destURI === this._sourceURI) {
+          this._opened = true
+          peerPortId = req[MeshCmdResIndex.PortId]
+          if (!this._peerPortId) this._peerPortId = peerPortId
+
+          this._logger.debug('recv readMesh: cmd(%s) %4O', cmd, message)
+          replyTo = req[MeshDataIndex.Id]
+          if (abort) {
+            this._sinkMan.abort(abort)
           }
-        } else {
-          req = message as MeshCmdRequest
-          portId = req[MeshCmdReqIndex.PeerPortId]
-          destURI = message[MeshCmdReqIndex.DestURI]
-          abort = req[MeshCmdReqIndex.Abort]
-          matched = portId === this._portId
+          this._sinkMan.addReadMesh({ replyTo })
+          processed = true
         }
+        break
 
-        if (matched) {
+      case MeshDataCmd.Req:
+        req = message as MeshCmdRequest
+        destURI = message[MeshCmdReqIndex.DestURI]
+        portId = message[MeshCmdReqIndex.PeerPortId]
+        assert(portId, `PeerPortId required in req message: ${message}`)
+        abort = req[MeshCmdReqIndex.Abort]
+
+        if (destURI === this._sourceURI && portId === this._portId) {
           this._logger.debug('recv readMesh: cmd(%s) %4O', cmd, message)
           replyTo = req[MeshDataIndex.Id]
           if (abort) {
@@ -228,44 +259,53 @@ export class PortStream<T> extends MeshStream<T> {
         break
       case MeshDataCmd.Res:
         res = message as MeshCmdResponse
-        portId = res[MeshCmdResIndex.PeerPortId]
         replyTo = res[MeshCmdResIndex.ReplyId]
         readMesh = this._readMeshMap.get(replyTo)
-        if (portId === this._portId && readMesh) {
+        if (readMesh) {
           this._logger.debug('recv response: %4O', message)
+          peerPortId = res[MeshCmdResIndex.PortId]
+          if (!this._peerPortId) this._peerPortId = peerPortId
+
           readMesh.res(res)
-          processed = true
-        }
-        break
-      case MeshDataCmd.Continue:
-        res = message as MeshCmdContinue
-        portId = res[MeshCmdContinueIndex.PeerPortId]
-        replyTo = res[MeshCmdContinueIndex.ReplyId]
-        readMesh = this._readMeshMap.get(replyTo)
-        if (portId === this._portId && readMesh) {
-          this._logger.debug('recv continue: %4O', message)
-          readMesh.continue(res)
           processed = true
         }
         break
       case MeshDataCmd.End:
         res = message as MeshCmdEnd
-        portId = res[MeshCmdEndIndex.PeerPortId]
         replyTo = res[MeshCmdEndIndex.ReplyId]
         readMesh = this._readMeshMap.get(replyTo)
-        if (portId === this._portId && readMesh) {
+        if (readMesh) {
           this._logger.debug('recv end: %4O', message)
+          peerPortId = res[MeshCmdResIndex.PortId]
+          if (!this._peerPortId) this._peerPortId = peerPortId
+
           readMesh.end(res)
           processed = true
         }
         break
+      case MeshDataCmd.Continue:
+        res = message as MeshCmdContinue
+        replyTo = res[MeshCmdContinueIndex.ReplyId]
+        portId = message[MeshCmdContinueIndex.PeerPortId]
+        if (portId === this._portId) {
+          readMesh = this._readMeshMap.get(replyTo)
+          if (readMesh) {
+            this._logger.debug('recv continue: %4O', message)
+            readMesh.continue(res)
+            processed = true
+          }
+        }
+        break
       case MeshDataCmd.SinkEnd:
         res = message as MeshCmdSinkEnd
-        portId = res[MeshCmdSinkEndIndex.PeerPortId]
+        destURI = res[MeshCmdSinkEndIndex.DestURI]
+        portId = message[MeshCmdReqIndex.PeerPortId]
         if (portId === this._portId) {
-          this._logger.debug('recv sinkEnd: %4O', this._readMeshMap.size, message)
-          this.remoteSinkEnds(res)
-          processed = true
+          if (destURI === this._sourceURI) {
+            this._logger.debug('recv sinkEnd: %4O', this._readMeshMap.size, message)
+            this.remoteSinkEnds(res)
+            processed = true
+          }
         }
         break
       default:
@@ -278,6 +318,7 @@ export class PortStream<T> extends MeshStream<T> {
     if (!this._finished && this._sourceEnd && this._sinkEnd) {
       this._logger.log('stream finished')
       this._finished = true
+      // tslint:disable-next-line no-floating-promises
       this._node.removePortStream(this)
     }
   }
