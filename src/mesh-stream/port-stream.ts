@@ -33,11 +33,22 @@ export interface PortStreamOptions {
   readTimeout: number
 }
 
+export interface PortStream<T> {
+  addListener(event: 'connect' | 'close', listener: () => void): this
+  on(event: 'connect' | 'close', listener: () => void): this
+  once(event: 'connect' | 'close', listener: () => void): this
+  removeListener(event: 'connect' | 'close', listener: () => void): this
+  off(event: 'connect' | 'close', listener: () => void): this
+  emit(event: 'connect' | 'close'): boolean
+}
+
 export class PortStream<T> extends MeshStream<T> {
   private _continueInterval: number
   private _readTimeout: number
 
   private _isFirstRead: boolean = true
+  private _isFirstReadMeshReturned: boolean = true
+
   private _remoteSinkEnd = false
   private _sourceMan = new SourceMan<T>(this)
   private _sinkMan: SinkMan<T>
@@ -163,8 +174,15 @@ export class PortStream<T> extends MeshStream<T> {
 
         if (abort) {
           // send abort message to mesh and ignore the result
-          const readMesh = ReadMesh.createAbort(self, (id) => {
+          const readMesh = ReadMesh.createAbort(self, (id, endOrError) => {
             self._readMeshMap.delete(id)
+
+            if (self._isFirstReadMeshReturned) {
+              self._isFirstReadMeshReturned = false
+              if (!endOrError) {
+                self.emit('connect')
+              }
+            }
           })
           self._readMeshMap.set(readMesh.id, readMesh)
           readMesh.postToMesh(isFirstRead, abort)
@@ -311,6 +329,7 @@ export class PortStream<T> extends MeshStream<T> {
     if (!this._finished && this._sourceEnd && this._sinkEnd) {
       this._logger.log('stream finished')
       this._finished = true
+      this.emit('close')
       // tslint:disable-next-line no-floating-promises
       this._node.removePortStream(this)
     }
@@ -320,6 +339,13 @@ export class PortStream<T> extends MeshStream<T> {
     const self = this
     const readMesh = ReadMesh.create(this, function next(id, endOrError, dataList) {
       self._readMeshMap.delete(id)
+
+      if (self._isFirstReadMeshReturned) {
+        self._isFirstReadMeshReturned = false
+        if (!endOrError) {
+          self.emit('connect')
+        }
+      }
 
       if (endOrError) {
         self._logger.log('sourceMan end', endOrError)
