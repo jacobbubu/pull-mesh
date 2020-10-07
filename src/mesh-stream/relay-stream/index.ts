@@ -55,12 +55,12 @@ export interface RelayStream {
   off(event: 'ignored', listener: (message: MeshData) => void): this
   emit(event: 'ignored', message: MeshData): boolean
 
-  addListener(event: 'connected' | 'disconnected', listener: () => void): this
-  on(event: 'connected' | 'disconnected', listener: () => void): this
-  once(event: 'connected' | 'disconnected', listener: () => void): this
-  removeListener(event: 'connected' | 'disconnected', listener: () => void): this
-  off(event: 'connected' | 'disconnected', listener: () => void): this
-  emit(event: 'connected' | 'disconnected'): boolean
+  addListener(event: 'connect' | 'close', listener: () => void): this
+  on(event: 'connect' | 'close', listener: () => void): this
+  once(event: 'connect' | 'close', listener: () => void): this
+  removeListener(event: 'connect' | 'close', listener: () => void): this
+  off(event: 'connect' | 'close', listener: () => void): this
+  emit(event: 'connect' | 'close'): boolean
 }
 
 export class RelayStream extends MeshStream<MeshData> {
@@ -138,7 +138,7 @@ export class RelayStream extends MeshStream<MeshData> {
             return
           }
           if (isFirstRead) {
-            self.emit('connected')
+            self.emit('connect')
             const peerVars = data as VarsType
 
             const vars = { ...self._vars, ...peerVars }
@@ -194,7 +194,7 @@ export class RelayStream extends MeshStream<MeshData> {
     if (!this._finished && this._sourceEnd && this._sinkEnd) {
       this._logger.log('stream finished')
       this._finished = true
-      this.emit('disconnected')
+      this.emit('close')
       this._node.removeRelayStream(this)
     }
   }
