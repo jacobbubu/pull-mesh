@@ -6,7 +6,7 @@ import { wrap, MeshNode } from '../src'
 const PORT = 9988
 
 const duplexOne = {
-  source: pull.values([1, 2]),
+  source: pull.values([1, 2, 3]),
   sink: pull.collect((_, results) => {
     console.log('received on One:', results)
   }),
@@ -16,7 +16,7 @@ const nodeA = new MeshNode('A')
 const nodeB = new MeshNode((_, destURI) => {
   if (destURI === 'Two') {
     const duplexTwo = {
-      source: pull.values(),
+      source: pull.values(['a', 'b', 'c']),
       sink: pull.collect((_, results) => {
         console.log('received on Two:', results)
       }),

@@ -17,14 +17,14 @@ const duplexOne = {
 const nodeA = new MeshNode('A')
 const nodeB = new MeshNode((_, destURI) => {
   if (destURI === 'Two') {
-    const duplexTwo = {
+    const stream = {
       source: pull.values(['A', 'B']),
       sink: pull.collect((_, results) => {
         console.log('received on Two:', results)
       }),
     }
     return {
-      stream: duplexTwo,
+      stream,
       portOpts: {
         continueInterval: 500,
         readTimeout: 1e3,

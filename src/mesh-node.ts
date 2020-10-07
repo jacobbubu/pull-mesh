@@ -32,7 +32,7 @@ export enum MeshCmdReqIndex {
   Cmd,
   SourceURI,
   DestURI,
-  PeerPortId,
+  PortId,
   Abort,
 }
 
@@ -41,7 +41,7 @@ export enum MeshCmdResIndex {
   Cmd,
   SourceURI,
   DestURI,
-  PortId,
+  PeerPortId,
   ReplyId,
   Payload,
 }
@@ -51,7 +51,7 @@ export enum MeshCmdEndIndex {
   Cmd,
   SourceURI,
   DestURI,
-  PortId,
+  PeerPortId,
   ReplyId,
   EndOrError,
 }
@@ -61,7 +61,7 @@ export enum MeshCmdContinueIndex {
   Cmd,
   SourceURI,
   DestURI,
-  PeerPortId,
+  PortId,
   ReplyId,
 }
 
@@ -70,7 +70,7 @@ export enum MeshCmdSinkEndIndex {
   Cmd,
   SourceURI,
   DestURI,
-  PeerPortId,
+  PortId,
   EndOrError,
 }
 
@@ -91,18 +91,19 @@ export type SourceURI = string
 export type DestURI = string
 
 export type MeshCmdOpen = [Id, MeshDataCmd.Open, SourceURI, DestURI, PortId, pull.Abort]
-export type MeshCmdRequest = [Id, MeshDataCmd.Req, SourceURI, DestURI, PeerPortId, pull.Abort]
-export type MeshCmdResponse = [Id, MeshDataCmd.Res, SourceURI, DestURI, PortId, ReplyId, any[]]
-export type MeshCmdContinue = [Id, MeshDataCmd.Continue, SourceURI, DestURI, PeerPortId, ReplyId]
-export type MeshCmdEnd = [Id, MeshDataCmd.End, SourceURI, DestURI, PortId, ReplyId, pull.EndOrError]
-export type MeshCmdSinkEnd = [
+export type MeshCmdRequest = [Id, MeshDataCmd.Req, SourceURI, DestURI, PortId, pull.Abort]
+export type MeshCmdResponse = [Id, MeshDataCmd.Res, SourceURI, DestURI, PeerPortId, ReplyId, any[]]
+export type MeshCmdContinue = [Id, MeshDataCmd.Continue, SourceURI, DestURI, PortId, ReplyId]
+export type MeshCmdEnd = [
   Id,
-  MeshDataCmd.SinkEnd,
+  MeshDataCmd.End,
   SourceURI,
   DestURI,
   PeerPortId,
+  ReplyId,
   pull.EndOrError
 ]
+export type MeshCmdSinkEnd = [Id, MeshDataCmd.SinkEnd, SourceURI, DestURI, PortId, pull.EndOrError]
 
 export type MeshData =
   | MeshCmdOpen

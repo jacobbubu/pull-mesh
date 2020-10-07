@@ -3,14 +3,14 @@ import * as pull from 'pull-stream'
 import { MeshNode } from '../src'
 
 const duplexOne = {
-  source: pull.values([1]),
+  source: pull.values([1, 2, 3]),
   sink: pull.collect((_, results) => {
     console.log('received on duplexOne:', results)
   }),
 }
 
 const duplexTwo = {
-  source: pull.values([10]),
+  source: pull.values([10, 11, 12]),
   sink: pull.collect((_, results) => {
     console.log('received on duplexTwo:', results)
   }),
@@ -21,7 +21,7 @@ let streamCount = 0
 const nodeB = new MeshNode((_, destURI) => {
   if (destURI === 'Two') {
     const s = {
-      source: pull.values(['a']),
+      source: pull.values(['a', 'b', 'c']),
       sink: pull.collect((_, results) => {
         console.log(`received ${s.tag}/Two:`, results)
       }),
