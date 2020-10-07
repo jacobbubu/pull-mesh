@@ -247,7 +247,6 @@ export class PortStream<T> extends MeshStream<T> {
         abort = req[MeshCmdReqIndex.Abort]
         peerPortId = req[MeshCmdReqIndex.PortId]
         if (destURI === this._sourceURI) {
-          assert(this._peerPortId)
           if (peerPortId === this._peerPortId) {
             this._logger.debug('recv readMesh: cmd(%s) %4O', message[MeshDataIndex.Cmd], message)
             replyTo = req[MeshDataIndex.Id]
