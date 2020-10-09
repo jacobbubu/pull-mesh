@@ -107,8 +107,16 @@ export class PortStream<T> extends MeshStream<T> {
     return this._continueInterval
   }
 
+  set continueInterval(value) {
+    this._continueInterval = value
+  }
+
   get readTimeout() {
     return this._readTimeout
+  }
+
+  set readTimeout(value) {
+    this._readTimeout = value
   }
 
   createOpenMessage(abort: pull.Abort, id: Id): MeshCmdOpen {
