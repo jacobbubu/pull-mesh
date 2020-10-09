@@ -47,7 +47,7 @@ export class PortStream<T> extends MeshStream<T> {
   private _readTimeout: number
 
   private _isFirstRead: boolean = true
-  private _isFirstReadMeshReturned: boolean = true
+  private _connectEventHasEmitted: boolean = false
 
   private _remoteSinkEnd = false
   private _sourceMan = new SourceMan<T>(this)
@@ -245,6 +245,13 @@ export class PortStream<T> extends MeshStream<T> {
     let portId
     let peerPortId
 
+    const emitConnect = () => {
+      if (!this._connectEventHasEmitted) {
+        this._connectEventHasEmitted = true
+        this.emit('connect')
+      }
+    }
+
     switch (message[MeshDataIndex.Cmd]) {
       case MeshDataCmd.Open:
         if (this._opened) return false
@@ -258,11 +265,12 @@ export class PortStream<T> extends MeshStream<T> {
           if (!this._peerPortId) this._peerPortId = peerPortId
 
           this._logger.debug('recv readMesh: cmd(%s) %4O', message[MeshDataIndex.Cmd], message)
+          emitConnect()
           replyTo = req[MeshDataIndex.Id]
+          this._sinkMan.addReadMesh({ replyTo })
           if (abort) {
             this._sinkMan.abort(abort)
           }
-          this._sinkMan.addReadMesh({ replyTo })
           processed = true
         }
         break
@@ -275,6 +283,7 @@ export class PortStream<T> extends MeshStream<T> {
         if (destURI === this._sourceURI) {
           if (peerPortId === this._peerPortId) {
             this._logger.debug('recv readMesh: cmd(%s) %4O', message[MeshDataIndex.Cmd], message)
+            emitConnect()
             replyTo = req[MeshDataIndex.Id]
             if (abort) {
               this._sinkMan.abort(abort)
@@ -347,13 +356,6 @@ export class PortStream<T> extends MeshStream<T> {
     const self = this
     const readMesh = ReadMesh.create(this, function next(id, endOrError, dataList) {
       self._readMeshMap.delete(id)
-
-      if (self._isFirstReadMeshReturned) {
-        self._isFirstReadMeshReturned = false
-        if (!endOrError) {
-          self.emit('connect')
-        }
-      }
 
       if (endOrError) {
         self._logger.log('sourceMan end', endOrError)
