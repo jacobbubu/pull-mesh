@@ -12,6 +12,18 @@ export const createDuplex = (values: any[], cb: (err: pull.EndOrError, data: any
   }
 }
 
+export const createAbortSinkDuplex = (
+  values: any[],
+  cb: (err: pull.EndOrError, data: any) => void
+) => {
+  return {
+    source: pull.values(values),
+    sink: (read: pull.Source<any>) => {
+      read(true, cb)
+    },
+  }
+}
+
 export const createDelayedDuplex = (
   values: any[],
   delay: number,

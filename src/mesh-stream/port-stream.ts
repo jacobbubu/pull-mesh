@@ -180,28 +180,23 @@ export class PortStream<T> extends MeshStream<T> {
         const isFirstRead = self._isFirstRead
         self._isFirstRead = false
 
-        if (abort) {
-          // send abort message to mesh and ignore the result
-          const readMesh = ReadMesh.createAbort(self, (id, endOrError) => {
-            self._readMeshMap.delete(id)
+        const needMoreReadMesh = self._sourceMan.addCb(cb)
 
-            if (self._isFirstReadMeshReturned) {
-              self._isFirstReadMeshReturned = false
-              if (!endOrError) {
-                self.emit('connect')
-              }
-            }
+        if (abort) {
+          // send abort message to mesh and end the source part
+          const readMesh = ReadMesh.createAbort(self, (id) => {
+            self._readMeshMap.delete(id)
+            self._sourceEnd = abort
+            self.finish()
           })
           self._readMeshMap.set(readMesh.id, readMesh)
           readMesh.postToMesh(isFirstRead, abort)
           self._sourceMan.abort(abort)
-          self._sourceEnd = abort
-          self.finish()
           return
         }
 
         // return if current cb has been satisfied
-        if (self._sourceMan.addCb(cb)) {
+        if (needMoreReadMesh) {
           self.createReadMesh(isFirstRead)
         }
       }
@@ -299,6 +294,7 @@ export class PortStream<T> extends MeshStream<T> {
         readMesh = this._readMeshMap.get(replyTo)
         if (readMesh) {
           this._logger.debug('recv response: %4O', message)
+          emitConnect()
           readMesh.res(res)
           processed = true
         }
@@ -309,6 +305,7 @@ export class PortStream<T> extends MeshStream<T> {
         readMesh = this._readMeshMap.get(replyTo)
         if (readMesh) {
           this._logger.debug('recv end: %4O', message)
+          emitConnect()
           readMesh.end(res)
           processed = true
         }
@@ -319,6 +316,7 @@ export class PortStream<T> extends MeshStream<T> {
         readMesh = this._readMeshMap.get(replyTo)
         if (readMesh) {
           this._logger.debug('recv continue: %4O', message)
+          emitConnect()
           readMesh.continue(res)
           processed = true
         }
@@ -331,6 +329,7 @@ export class PortStream<T> extends MeshStream<T> {
         if (peerPortId === this._peerPortId) {
           if (destURI === this._sourceURI) {
             this._logger.debug('recv sinkEnd: %4O', this._readMeshMap.size, message)
+            emitConnect()
             this.remoteSinkEnds(res)
             processed = true
           }

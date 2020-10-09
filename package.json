@@ -31,7 +31,8 @@
     "example:three-nodes": "DEBUG_NAME_WIDTH=20 DEBUG='mesh*' tsnd --respawn examples/three-nodes.ts",
     "example:model": "DEBUG_NAME_WIDTH=20 DEBUG='mesh*,sb*' tsnd --respawn examples/model.ts",
     "example:continue": "DEBUG_NAME_WIDTH=20 DEBUG='mesh*,sb*' tsnd --respawn examples/continue.ts",
-    "example:net": "DEBUG_NAME_WIDTH=20 DEBUG='mesh*,sb*' tsnd --respawn examples/net.ts"
+    "example:net": "DEBUG_NAME_WIDTH=20 DEBUG='mesh*,sb*' tsnd --respawn examples/net.ts",
+    "example:abort-now": "DEBUG_NAME_WIDTH=20 DEBUG='mesh*,sb*' tsnd --respawn examples/abort-now.ts"
   },
   "lint-staged": {
     "{src,test}/**/*.ts": [
