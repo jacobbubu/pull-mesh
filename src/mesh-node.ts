@@ -170,6 +170,10 @@ export class MeshNode {
     return this._portStreams as ReadonlyArray<PortStream<any>>
   }
 
+  get onOpenPortHooks() {
+    return this._onOpenPortHooks
+  }
+
   getNextPortStreamCounter() {
     return this._portStreamCounter++
   }
