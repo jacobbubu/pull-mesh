@@ -6,6 +6,7 @@ export class SourceMan<T> {
   private _buffer: [pull.EndOrError, T | undefined][] = []
 
   private _reentered = false
+  private _abortGuard = false
 
   constructor(private readonly _port: PortStream<T>) {}
 
@@ -28,10 +29,17 @@ export class SourceMan<T> {
   }
 
   abort(abort: pull.EndOrError = true) {
-    this._buffer = []
-    while (this._cbs.length > 0) {
-      const cb = this._cbs.shift()!
-      cb(abort)
+    if (this._abortGuard) return
+    this._abortGuard = true
+
+    try {
+      this._buffer = []
+      while (this._cbs.length > 0) {
+        const cb = this._cbs.shift()!
+        cb(abort)
+      }
+    } finally {
+      this._abortGuard = false
     }
   }
 
