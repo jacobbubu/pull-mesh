@@ -251,7 +251,6 @@ export class MeshNode {
   }
 
   private async openPort(message: MeshCmdOpen) {
-    let found = false
     const sourceURI = message[MeshCmdOpenIndex.SourceURI]
     const destURI = message[MeshCmdOpenIndex.DestURI]
 
@@ -261,10 +260,10 @@ export class MeshNode {
         const { stream, portOpts } = result
         const port = this.createPortStream(destURI, sourceURI, portOpts)
         pull(port, stream, port)
-        found = true
+        return true
       }
     }
-    return found
+    return false
   }
 
   private sortRelayStreams() {
