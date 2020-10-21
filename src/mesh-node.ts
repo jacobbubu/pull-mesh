@@ -61,7 +61,7 @@ export enum MeshCmdContinueIndex {
   Cmd,
   SourceURI,
   DestURI,
-  PortId,
+  PeerPortId,
   ReplyId,
 }
 
@@ -93,7 +93,7 @@ export type DestURI = string
 export type MeshCmdOpen = [Id, MeshDataCmd.Open, SourceURI, DestURI, PortId, pull.Abort]
 export type MeshCmdRequest = [Id, MeshDataCmd.Req, SourceURI, DestURI, PortId, pull.Abort]
 export type MeshCmdResponse = [Id, MeshDataCmd.Res, SourceURI, DestURI, PeerPortId, ReplyId, any[]]
-export type MeshCmdContinue = [Id, MeshDataCmd.Continue, SourceURI, DestURI, PortId, ReplyId]
+export type MeshCmdContinue = [Id, MeshDataCmd.Continue, SourceURI, DestURI, PeerPortId, ReplyId]
 export type MeshCmdEnd = [
   Id,
   MeshDataCmd.End,

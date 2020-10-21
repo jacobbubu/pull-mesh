@@ -156,7 +156,7 @@ export class PortStream<T> extends MeshStream<T> {
   }
 
   createContinueMessage(replyTo: ReplyId): MeshCmdContinue {
-    return [uid(), MeshDataCmd.Continue, this._sourceURI, this._destURI, this._portId, replyTo]
+    return [uid(), MeshDataCmd.Continue, this._sourceURI, this._destURI, this._peerPortId!, replyTo]
   }
 
   postToMesh(message: MeshData) {
