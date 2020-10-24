@@ -26,7 +26,6 @@ import { uid } from '../utils'
 import { ReadMesh } from './read-mesh'
 import { SourceMan } from './source-man'
 import { SinkMan } from './sink-man'
-import { assert } from 'console'
 
 export interface PortStreamOptions {
   continueInterval: number
@@ -116,6 +115,11 @@ export class PortStream<T> extends MeshStream<T> {
   }
 
   set readTimeout(value) {
+    const oldValue = this._readTimeout
+    this._readMeshMap.forEach((readMesh) => {
+      readMesh.setNewReadTimeout(value)
+    })
+
     this._readTimeout = value
   }
 

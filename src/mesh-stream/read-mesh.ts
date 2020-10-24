@@ -66,7 +66,7 @@ export class ReadMesh<T> {
   }
 
   res(message: MeshCmdResponse) {
-    this._readMeshTouch?.touch()
+    this.touch()
     const dataList = message[MeshCmdResIndex.Payload]
     assert(Array.isArray(dataList))
     this.finish(null, dataList)
@@ -84,11 +84,21 @@ export class ReadMesh<T> {
   }
 
   continue(_: MeshCmdContinue) {
-    this._readMeshTouch?.touch()
+    this.touch()
   }
 
   abort(abort: pull.Abort = true) {
     this.finish(abort)
+  }
+
+  setNewReadTimeout(newTimeout: number) {
+    if (!this._readMeshTouch) return false
+    this._readMeshTouch.extendTo(newTimeout)
+    return true
+  }
+
+  private touch() {
+    this._readMeshTouch?.touch()
   }
 
   private finish(end: pull.EndOrError, dataList?: any[]) {

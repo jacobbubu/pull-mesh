@@ -4,11 +4,11 @@ import { globalTimer } from './global-timer'
 export class TouchMan {
   private _touchedAt = 0
   private _totalTouched = 0
+  private _started = false
 
   constructor(
     private readonly _onTimeout: (touched: number) => void,
-    private readonly _expiresAfter: number = 30e3,
-    private _started = false
+    private _expiresAfter: number = 30e3
   ) {
     this.timeout = this.timeout.bind(this)
     this.start()
@@ -28,6 +28,10 @@ export class TouchMan {
     }
   }
 
+  extendTo(newTimeout: number) {
+    this._expiresAfter = newTimeout
+  }
+
   stop() {
     if (this._started) {
       globalTimer.off('1s', this.timeout)
@@ -38,6 +42,10 @@ export class TouchMan {
   touch() {
     this._touchedAt = now()
     this._totalTouched++
+  }
+
+  get touchedAt() {
+    return this._touchedAt
   }
 
   get totalTouched() {
