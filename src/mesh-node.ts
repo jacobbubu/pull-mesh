@@ -13,6 +13,7 @@ import { Debug } from '@jacobbubu/debug'
 
 export enum MeshDataIndex {
   Id = 0,
+  Meta,
   Cmd,
   SourceURI,
   DestURI,
@@ -20,6 +21,7 @@ export enum MeshDataIndex {
 
 export enum MeshCmdOpenIndex {
   Id = 0,
+  Meta,
   Cmd,
   SourceURI,
   DestURI,
@@ -29,6 +31,7 @@ export enum MeshCmdOpenIndex {
 
 export enum MeshCmdReqIndex {
   Id = 0,
+  Meta,
   Cmd,
   SourceURI,
   DestURI,
@@ -38,6 +41,7 @@ export enum MeshCmdReqIndex {
 
 export enum MeshCmdResIndex {
   Id = 0,
+  Meta,
   Cmd,
   SourceURI,
   DestURI,
@@ -48,6 +52,7 @@ export enum MeshCmdResIndex {
 
 export enum MeshCmdEndIndex {
   Id = 0,
+  Meta,
   Cmd,
   SourceURI,
   DestURI,
@@ -58,6 +63,7 @@ export enum MeshCmdEndIndex {
 
 export enum MeshCmdContinueIndex {
   Id = 0,
+  Meta,
   Cmd,
   SourceURI,
   DestURI,
@@ -67,6 +73,7 @@ export enum MeshCmdContinueIndex {
 
 export enum MeshCmdSinkEndIndex {
   Id = 0,
+  Meta,
   Cmd,
   SourceURI,
   DestURI,
@@ -83,19 +90,43 @@ export enum MeshDataCmd {
   SinkEnd = 'sinkEnd',
 }
 
+export interface MeshMeta {
+  cont?: number
+  [key: string]: any
+}
+
 export type Id = string
-export type ReplyId = Id
-export type PortId = Id
-export type PeerPortId = Id
+export type Meta = MeshMeta
 export type SourceURI = string
 export type DestURI = string
+export type PortId = Id
+export type PeerPortId = Id
+export type ReplyId = Id
 
-export type MeshCmdOpen = [Id, MeshDataCmd.Open, SourceURI, DestURI, PortId, pull.Abort]
-export type MeshCmdRequest = [Id, MeshDataCmd.Req, SourceURI, DestURI, PortId, pull.Abort]
-export type MeshCmdResponse = [Id, MeshDataCmd.Res, SourceURI, DestURI, PeerPortId, ReplyId, any[]]
-export type MeshCmdContinue = [Id, MeshDataCmd.Continue, SourceURI, DestURI, PeerPortId, ReplyId]
+export type MeshCmdOpen = [Id, Meta, MeshDataCmd.Open, SourceURI, DestURI, PortId, pull.Abort]
+export type MeshCmdRequest = [Id, Meta, MeshDataCmd.Req, SourceURI, DestURI, PortId, pull.Abort]
+export type MeshCmdResponse = [
+  Id,
+  Meta,
+  MeshDataCmd.Res,
+  SourceURI,
+  DestURI,
+  PeerPortId,
+  ReplyId,
+  any[]
+]
+export type MeshCmdContinue = [
+  Id,
+  Meta,
+  MeshDataCmd.Continue,
+  SourceURI,
+  DestURI,
+  PeerPortId,
+  ReplyId
+]
 export type MeshCmdEnd = [
   Id,
+  Meta,
   MeshDataCmd.End,
   SourceURI,
   DestURI,
@@ -103,7 +134,15 @@ export type MeshCmdEnd = [
   ReplyId,
   pull.EndOrError
 ]
-export type MeshCmdSinkEnd = [Id, MeshDataCmd.SinkEnd, SourceURI, DestURI, PortId, pull.EndOrError]
+export type MeshCmdSinkEnd = [
+  Id,
+  Meta,
+  MeshDataCmd.SinkEnd,
+  SourceURI,
+  DestURI,
+  PortId,
+  pull.EndOrError
+]
 
 export type MeshData =
   | MeshCmdOpen

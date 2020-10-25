@@ -21,6 +21,7 @@ import {
   MeshCmdContinueIndex,
   MeshCmdEndIndex,
   MeshCmdSinkEndIndex,
+  MeshMeta,
 } from '../mesh-node'
 import { uid } from '../utils'
 import { ReadMesh } from './read-mesh'
@@ -28,7 +29,6 @@ import { SourceMan } from './source-man'
 import { SinkMan } from './sink-man'
 
 export interface PortStreamOptions {
-  continueInterval: number
   readTimeout: number
 }
 
@@ -56,6 +56,8 @@ export class PortStream<T> extends MeshStream<T> {
   private _peerPortId: PeerPortId | null = null
   private _opened = false
 
+  private _reqCont: number | null = null
+
   public kind = 'PORT'
 
   constructor(
@@ -66,7 +68,7 @@ export class PortStream<T> extends MeshStream<T> {
   ) {
     super(node)
     this._portId = node.getNextPortStreamCounter().toString()
-    this._continueInterval = opts.continueInterval ?? 10e3
+    this._continueInterval = 0
     this._readTimeout = opts.readTimeout ?? 15e3
 
     this._logger = node.logger.ns(this._sourceURI).ns(this._portId)
@@ -106,34 +108,39 @@ export class PortStream<T> extends MeshStream<T> {
     return this._continueInterval
   }
 
-  set continueInterval(value) {
-    this._continueInterval = value
-  }
-
   get readTimeout() {
     return this._readTimeout
   }
 
   set readTimeout(value) {
-    const oldValue = this._readTimeout
     this._readMeshMap.forEach((readMesh) => {
       readMesh.setNewReadTimeout(value)
     })
-
     this._readTimeout = value
+    this._reqCont = this.calcContinueInterval(this._readTimeout)
   }
 
-  createOpenMessage(abort: pull.Abort, id: Id): MeshCmdOpen {
-    return [id, MeshDataCmd.Open, this._sourceURI, this._destURI, this._portId, abort]
+  calcContinueInterval(readTimeout: number = this._readTimeout) {
+    return Math.floor(readTimeout / 3)
   }
 
-  createReqMessage(abort: pull.Abort, id: Id): MeshCmdRequest {
-    return [id, MeshDataCmd.Req, this._sourceURI, this._destURI, this._portId, abort]
+  createOpenMessage(abort: pull.Abort, id: Id, meta: MeshMeta = {}): MeshCmdOpen {
+    meta.cont = meta.cont ?? this.calcContinueInterval()
+    return [id, meta, MeshDataCmd.Open, this._sourceURI, this._destURI, this._portId, abort]
   }
 
-  createResMessage(replyTo: ReplyId, dataList: any[]): MeshCmdResponse {
+  createReqMessage(abort: pull.Abort, id: Id, meta: MeshMeta = {}): MeshCmdRequest {
+    if (this._reqCont) {
+      meta.cont = meta.cont ?? this._reqCont
+      this._reqCont = null
+    }
+    return [id, meta, MeshDataCmd.Req, this._sourceURI, this._destURI, this._portId, abort]
+  }
+
+  createResMessage(replyTo: ReplyId, dataList: any[], meta: MeshMeta = {}): MeshCmdResponse {
     return [
       uid(),
+      meta,
       MeshDataCmd.Res,
       this._sourceURI,
       this._destURI,
@@ -143,9 +150,10 @@ export class PortStream<T> extends MeshStream<T> {
     ]
   }
 
-  createEndMessage(replyTo: ReplyId, endOrError: pull.EndOrError): MeshCmdEnd {
+  createEndMessage(replyTo: ReplyId, endOrError: pull.EndOrError, meta: MeshMeta = {}): MeshCmdEnd {
     return [
       uid(),
+      meta,
       MeshDataCmd.End,
       this._sourceURI,
       this._destURI,
@@ -155,12 +163,28 @@ export class PortStream<T> extends MeshStream<T> {
     ]
   }
 
-  createSinkEndMessage(endOrError: pull.EndOrError): MeshCmdSinkEnd {
-    return [uid(), MeshDataCmd.SinkEnd, this._sourceURI, this._destURI, this._portId, endOrError]
+  createSinkEndMessage(endOrError: pull.EndOrError, meta: MeshMeta = {}): MeshCmdSinkEnd {
+    return [
+      uid(),
+      meta,
+      MeshDataCmd.SinkEnd,
+      this._sourceURI,
+      this._destURI,
+      this._portId,
+      endOrError,
+    ]
   }
 
-  createContinueMessage(replyTo: ReplyId): MeshCmdContinue {
-    return [uid(), MeshDataCmd.Continue, this._sourceURI, this._destURI, this._peerPortId!, replyTo]
+  createContinueMessage(replyTo: ReplyId, meta: MeshMeta = {}): MeshCmdContinue {
+    return [
+      uid(),
+      meta,
+      MeshDataCmd.Continue,
+      this._sourceURI,
+      this._destURI,
+      this._peerPortId!,
+      replyTo,
+    ]
   }
 
   postToMesh(message: MeshData) {
@@ -262,6 +286,7 @@ export class PortStream<T> extends MeshStream<T> {
           this._opened = true
           peerPortId = req[MeshCmdOpenIndex.PortId]
           if (!this._peerPortId) this._peerPortId = peerPortId
+          this.processMeta(req[MeshCmdOpenIndex.Meta])
 
           this._logger.debug('recv readMesh: cmd(%s) %4O', message[MeshDataIndex.Cmd], message)
           emitConnect()
@@ -281,6 +306,7 @@ export class PortStream<T> extends MeshStream<T> {
         peerPortId = req[MeshCmdReqIndex.PortId]
         if (destURI === this._sourceURI) {
           if (peerPortId === this._peerPortId) {
+            this.processMeta(req[MeshCmdReqIndex.Meta])
             this._logger.debug('recv readMesh: cmd(%s) %4O', message[MeshDataIndex.Cmd], message)
             emitConnect()
             replyTo = req[MeshDataIndex.Id]
@@ -377,5 +403,12 @@ export class PortStream<T> extends MeshStream<T> {
 
     this._readMeshMap.set(readMesh.id, readMesh)
     readMesh.postToMesh(isFirstRead)
+  }
+
+  private processMeta(meta: MeshMeta) {
+    const continueInterval = meta?.cont
+    if (continueInterval) {
+      this._continueInterval = continueInterval
+    }
   }
 }

@@ -56,8 +56,8 @@ describe('relay-stream', () => {
         if (i1 === 0) {
           expect(data).toEqual(opts.vars)
         } else if (i1 === 1) {
-          expect(data[2]).toBe('{v}{sm}')
-          expect(data[3]).toBe('{c}{sm}')
+          expect(data[MeshDataIndex.SourceURI]).toBe('{v}{sm}')
+          expect(data[MeshDataIndex.DestURI]).toBe('{c}{sm}')
         }
         i1 += 1
       }),
@@ -66,8 +66,8 @@ describe('relay-stream', () => {
         if (i2 === 0) {
           expect(data).toEqual({})
         } else if (i2 === 1) {
-          expect(data[2]).toBe('{c}{sm}')
-          expect(data[3]).toBe('{v}{sm}')
+          expect(data[MeshDataIndex.SourceURI]).toBe('{c}{sm}')
+          expect(data[MeshDataIndex.DestURI]).toBe('{v}{sm}')
         }
         i2 += 1
       }),
