@@ -169,7 +169,7 @@ export class MeshNode {
   private readonly _dup: Dup = new Dup()
   private readonly _logger: Debug
   private readonly _relayStreams: RelayStream[] = []
-  private readonly _portStreams: PortStream<any>[] = []
+  private readonly _portStreams: PortStream<any, any>[] = []
   private _portStreamCounter = 0
   private _lock: AsyncLock = new AsyncLock()
 
@@ -206,7 +206,7 @@ export class MeshNode {
   }
 
   get portStreams() {
-    return this._portStreams as ReadonlyArray<PortStream<any>>
+    return this._portStreams as ReadonlyArray<PortStream<any, any>>
   }
 
   get onOpenPortHooks() {
@@ -217,8 +217,20 @@ export class MeshNode {
     return this._portStreamCounter++
   }
 
-  createPortStream<T>(sourceURI: string, destURI: string, opts?: Partial<PortStreamOptions>) {
-    const stream = new PortStream<T>(sourceURI, destURI, this, opts)
+  createPortStream<In, Out>(sourceURI: string, destURI: string, opts?: Partial<PortStreamOptions>) {
+    const stream = new PortStream<In, Out>(sourceURI, destURI, this, opts)
+    this._portStreams.push(stream)
+    return stream
+  }
+
+  createPortStreamWithPeerPortId<In, Out>(
+    sourceURI: string,
+    destURI: string,
+    peerPortId: PeerPortId,
+    opts?: Partial<PortStreamOptions>
+  ) {
+    const stream = new PortStream<In, Out>(sourceURI, destURI, this, opts)
+    stream.peerPortId = peerPortId
     this._portStreams.push(stream)
     return stream
   }
@@ -244,6 +256,7 @@ export class MeshNode {
 
       for (let i = 0; i < this._portStreams.length; i++) {
         const stream = this._portStreams[i]
+        // 注意修改
         if (stream !== source && this._portStreams[i].process(message)) {
           return
         }
@@ -263,7 +276,7 @@ export class MeshNode {
     })
   }
 
-  removePortStream(stream: PortStream<any>) {
+  removePortStream(stream: PortStream<any, any>) {
     return this._lock.acquire(LockName, async () => {
       const pos = this._portStreams.indexOf(stream)
       if (pos >= 0) {
@@ -292,12 +305,22 @@ export class MeshNode {
   private async openPort(message: MeshCmdOpen) {
     const sourceURI = message[MeshCmdOpenIndex.SourceURI]
     const destURI = message[MeshCmdOpenIndex.DestURI]
+    const peerPortId = message[MeshCmdOpenIndex.PortId]
 
     for (let i = 0; i < this._onOpenPortHooks.length; i++) {
       const result = await this._onOpenPortHooks[i](sourceURI, destURI)
       if (result) {
         const { stream, portOpts } = result
-        const port = this.createPortStream(destURI, sourceURI, portOpts)
+        const port = this.createPortStreamWithPeerPortId(destURI, sourceURI, peerPortId, portOpts)
+        this.logger.log('create a new portStream:', {
+          node: this.name,
+          msgId: message[MeshCmdOpenIndex.Id],
+          sourceURI: port.sourceURI,
+          destURI: port.destURI,
+          portId: port.portId,
+          peerPortId: peerPortId,
+        })
+
         pull(port, stream, port)
         return true
       }

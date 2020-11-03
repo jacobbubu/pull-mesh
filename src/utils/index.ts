@@ -1,3 +1,4 @@
+import * as pull from 'pull-stream'
 import ShortUniqueId from 'short-unique-id'
 
 export const uid = new ShortUniqueId()
@@ -20,3 +21,9 @@ export function isPromise(obj: any) {
     typeof obj.then === 'function'
   )
 }
+
+export function trueToNull(endOrError: pull.EndOrError) {
+  return endOrError === true ? null : endOrError
+}
+
+export const delay = (ms: number) => new Promise((resolve) => setTimeout(() => resolve(), ms))

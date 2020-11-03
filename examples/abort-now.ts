@@ -10,14 +10,14 @@ const createAbortSinkDuplex = (values: any[], cb: (err: pull.EndOrError, data: a
   }
 }
 
-const duplexOne = createAbortSinkDuplex([], (err, results) => {
+const duplexOne = createAbortSinkDuplex([], (_, results) => {
   console.log('duplexOne results', results)
-  // expect(results).toEqual([])
+  // expect(results).toBeUndefined()
 })
 
 const node = new MeshNode((_, destURI) => {
   if (destURI === 'Two') {
-    const duplexTwo = createAbortSinkDuplex([], (err, results) => {
+    const duplexTwo = createAbortSinkDuplex([1], (_, results) => {
       console.log('duplexTwo results', results)
     })
     return {

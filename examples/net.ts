@@ -5,6 +5,7 @@ import { wrap, MeshNode } from '../src'
 
 const PORT = 9988
 
+const readTimeout = 4e3
 const duplexOne = {
   source: pull.values([1, 2, 3]),
   sink: pull.collect((_, results) => {
@@ -23,6 +24,9 @@ const nodeB = new MeshNode((_, destURI) => {
     }
     return {
       stream: duplexTwo,
+      portOpts: {
+        readTimeout,
+      },
     }
   }
 }, 'B')
@@ -41,6 +45,6 @@ const rawClient = net.createConnection({ port: PORT }, () => {
 
   pull(client, wrap(a2b, { windowed: true }), client)
 
-  const portNum = nodeA.createPortStream('One', 'Two')
+  const portNum = nodeA.createPortStream('One', 'Two', { readTimeout })
   pull(portNum, duplexOne, portNum)
 })

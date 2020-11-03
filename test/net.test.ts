@@ -30,7 +30,7 @@ describe('net', () => {
       if (result1?.length > 0 && result2?.length > 0) {
         expect(result1).toEqual(['a', 'b', 'c'])
         expect(result2).toEqual([1, 2, 3])
-
+        rawClient.destroy()
         server.close(done)
       }
     }
@@ -51,12 +51,11 @@ describe('net', () => {
       const duplexOne = createDuplex([1, 2, 3], (err, results) => {
         expect(err).toBeFalsy()
         result1 = results
-        rawClient.destroy()
         hasDone()
       })
 
-      const portNum = nodeA.createPortStream('One', 'Two')
-      pull(portNum, duplexOne, portNum)
+      const port1 = nodeA.createPortStream('One', 'Two')
+      pull(port1, duplexOne, port1)
     })
   })
 
@@ -82,7 +81,7 @@ describe('net', () => {
       if (result1?.length > 0 && result2?.length > 0) {
         expect(result1).toEqual(['a', 'b', 'c'])
         expect(result2).toEqual([1, 2, 3])
-
+        rawClient.destroy()
         server.close(done)
       }
     }
@@ -103,7 +102,6 @@ describe('net', () => {
       const duplexOne = createDuplex([1, 2, 3], (err, results) => {
         expect(err).toBeFalsy()
         result1 = results
-        rawClient.destroy()
         hasDone()
       })
 

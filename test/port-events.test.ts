@@ -11,9 +11,11 @@ describe('port-stream events', () => {
     let count = 2
 
     function finish() {
-      expect(onConnectEvent).toBeCalledTimes(1)
-      expect(onCloseEvent).toBeCalledTimes(1)
-      done()
+      setTimeout(() => {
+        expect(onConnectEvent).toBeCalledTimes(1)
+        expect(onCloseEvent).toBeCalledTimes(1)
+        done()
+      }, 1e3)
     }
 
     const duplexOne = createDuplex([1, 2, 3], (err, results) => {
@@ -49,9 +51,11 @@ describe('port-stream events', () => {
     let count = 2
 
     function finish() {
-      expect(onConnectEvent).toBeCalledTimes(1)
-      expect(onCloseEvent).toBeCalledTimes(1)
-      done()
+      setTimeout(() => {
+        expect(onConnectEvent).toBeCalledTimes(1)
+        expect(onCloseEvent).toBeCalledTimes(1)
+        done()
+      }, 1e3)
     }
 
     const duplexOne = createDuplex([], (err, results) => {
@@ -86,10 +90,10 @@ describe('port-stream events', () => {
     let count = 2
 
     function finish() {
-      setImmediate(() => {
+      setTimeout(() => {
         expect(events).toEqual(['CONNECT', 'CLOSE'])
         done()
-      })
+      }, 1e3)
     }
 
     const duplexOne = createAbortSinkDuplex([], (err, results) => {

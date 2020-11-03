@@ -31,18 +31,10 @@ pull(a2b, b2a, a2b)
 const portOne = nodeA.createPortStream('One', 'Two', PortOpts)
 const sOne = modelOne.createStream({ wrapper: 'raw' })
 
-const portOne2 = nodeA.createPortStream('One', 'Two', PortOpts)
-const sOne2 = modelOne.createStream({ wrapper: 'raw' })
-
 sOne.on('synced', () => {
   console.log('bar@One:', modelTwo.get('bar'))
 })
 
-sOne2.on('synced', () => {
-  console.log('bar@One2:', modelTwo.get('bar'))
-})
-
 pull(portOne, sOne, portOne)
-pull(portOne2, sOne2, portOne2)
 
 modelTwo.set('bar', 'foo')

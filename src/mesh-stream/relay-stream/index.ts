@@ -1,6 +1,5 @@
-import * as pull from 'pull-stream'
-import { pushable, Read } from '@jacobbubu/pull-pushable'
 import { MeshStream } from '../mesh-stream'
+import { PushableDuplex, OnReceivedCallback, OnReadCallback } from '@jacobbubu/pull-pushable-duplex'
 import {
   MeshNode,
   MeshData,
@@ -69,10 +68,11 @@ export class RelayStream extends MeshStream<MeshData> {
   private _incomingFilter: FilterFunc | null
   private _vars: VarsType
   private _priority: number
-  private _isDictator: boolean
   private _isFirstRead = true
+  private _isFirstGetSource = true
   private _replacer: Replacer = []
   private _reversed: Replacer = []
+  private _innerDuplex: PushableDuplex<MeshData, MeshData, number>
 
   public kind = 'RELAY'
 
@@ -83,8 +83,16 @@ export class RelayStream extends MeshStream<MeshData> {
     this._incomingFilter = _opts.incomingFilter ?? null
     this._vars = _opts.vars ?? {}
     this._priority = _opts.priority ?? 100
-    this._isDictator = _opts.isDictator ?? false
     this._logger = node.logger.ns(`*${this._name}`)
+
+    this._innerDuplex = new PushableDuplex({
+      allowHalfOpen: false,
+      initialState: 0,
+      onReceived: this.onReceived.bind(this),
+      onFinished: (end) => {
+        this.finish()
+      },
+    })
   }
 
   get name() {
@@ -108,78 +116,22 @@ export class RelayStream extends MeshStream<MeshData> {
   }
 
   get source() {
-    if (!this._source) {
-      this._source = pushable(() => {
-        this._sourceEnd = true
-        this.finish()
-      })
-      ;(this._source as Read<RelayContext>).push(this._vars)
+    if (this._isFirstGetSource) {
+      this._isFirstGetSource = false
+      this._innerDuplex.push(this._vars as any)
     }
-    return this._source
+    return this._innerDuplex.source
   }
 
   get sink() {
-    if (!this._sink) {
-      const self = this
-      this._sink = function (rawRead: pull.Source<MeshData>) {
-        rawRead(self._sourceEnd, function next(
-          endOrError: pull.EndOrError,
-          data?: MeshData | RelayContext
-        ) {
-          const isFirstRead = self._isFirstRead
-          if (self._isFirstRead) self._isFirstRead = false
-
-          if (endOrError) {
-            self._sinkEnd = true
-            if (!self._sourceEnd && self._source) {
-              ;(self._source as Read<MeshData>).end()
-            }
-            self.finish()
-            return
-          }
-          if (isFirstRead) {
-            self.emit('connect')
-            const peerVars = data as VarsType
-
-            const vars = { ...self._vars, ...peerVars }
-            const replacers = toReplacer(vars)
-            self._replacer = replacers.replacer
-            self._reversed = replacers.reversed
-            self._logger.log('replacer:', self._replacer)
-          } else {
-            const message = data as MeshData
-            const { dup } = self._node
-            const id = message[MeshDataIndex.Id]
-            if (!dup.check(id)) {
-              dup.track(id)
-              if (self._incomingFilter && !self._incomingFilter(message)) {
-                self.emit('ignored', message)
-              } else {
-                const encoded = self.preBroadcast(message)
-                self.emit('incoming', message, encoded)
-                const result = self._node.broadcast(encoded, self)
-                if (isPromise(result)) {
-                  // tslint:disable-next-line no-floating-promises
-                  result.then(() => rawRead(self._sourceEnd, next))
-                  return
-                }
-              }
-            } else {
-              self.emit('ignored', message)
-            }
-          }
-          rawRead(self._sourceEnd, next)
-        })
-      }
-    }
-    return this._sink
+    return this._innerDuplex.sink
   }
 
   forward(rawMessage: MeshData) {
     const encoded = this.preForward(rawMessage)
     this.emit('outgoing', rawMessage, encoded)
     this._logger.debug(`forward with relayStream(${this._name}):`, { rawMessage, encoded })
-    ;(this.source as Read<MeshData>).push(encoded)
+    this._innerDuplex.push(encoded)
   }
 
   protected preBroadcast(message: MeshData): MeshData {
@@ -191,12 +143,44 @@ export class RelayStream extends MeshStream<MeshData> {
   }
 
   protected finish() {
-    if (!this._finished && this._sourceEnd && this._sinkEnd) {
-      this._logger.log('stream finished')
-      this._finished = true
-      this.emit('close')
-      this._node.removeRelayStream(this)
+    this.emit('close')
+    this._node.removeRelayStream(this)
+  }
+
+  private onReceived(data: MeshData | VarsType, cb: OnReceivedCallback) {
+    if (this._isFirstRead) {
+      this._isFirstRead = false
+      this.emit('connect')
+      const peerVars = data as VarsType
+
+      const vars = { ...this._vars, ...peerVars }
+      const replacers = toReplacer(vars)
+      this._replacer = replacers.replacer
+      this._reversed = replacers.reversed
+      this._logger.log('replacer:', this._replacer)
+    } else {
+      const message = data as MeshData
+      const { dup } = this._node
+      const id = message[MeshDataIndex.Id]
+      if (!dup.check(id)) {
+        dup.track(id)
+        if (this._incomingFilter && !this._incomingFilter(message)) {
+          this.emit('ignored', message)
+        } else {
+          const encoded = this.preBroadcast(message)
+          this.emit('incoming', message, encoded)
+          const result = this._node.broadcast(encoded, this)
+          if (isPromise(result)) {
+            // tslint:disable-next-line no-floating-promises
+            result.then(() => cb())
+            return
+          }
+        }
+      } else {
+        this.emit('ignored', message)
+      }
     }
+    cb()
   }
 }
 

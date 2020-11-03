@@ -11,23 +11,21 @@ describe('timeout', () => {
       setTimeout(() => {
         expect(nodeA.portStreamsLength).toBe(0)
         done()
-      }, 100)
+      }, 2e3)
     }
 
     const duplexOne = createDelayedDuplex([1, 2, 3], 1e3, (err, results) => {
-      // portNum does not have the opportunity to extend the readMesh timeout
-      // via a continue message on the peer
       expect(err).toBeTruthy()
       allDone()
     })
 
     const nodeA = new MeshNode('A')
 
-    const portNum = nodeA.createPortStream('One', 'Two', {
+    const port1 = nodeA.createPortStream('One', 'Two', {
       readTimeout,
     })
 
-    pull(portNum, duplexOne, portNum)
+    pull(port1, duplexOne, port1)
   })
 
   it('two nodes with no timeout', (done) => {
@@ -39,7 +37,7 @@ describe('timeout', () => {
         expect(nodeA.portStreamsLength).toBe(0)
         expect(nodeB.portStreamsLength).toBe(0)
         done()
-      }, 100)
+      }, 800)
     }
 
     const duplexOne = createDelayedDuplex([1, 2, 3], 1e3, (err, results) => {
@@ -77,7 +75,7 @@ describe('timeout', () => {
           switch (cmd) {
             case MeshDataCmd.Open:
               meta = message[MeshDataIndex.Meta]
-              expect(meta).toEqual({ cont: portNum.calcContinueInterval(readTimeout) })
+              expect(meta).toEqual({ cont: port1.calcContinueInterval(readTimeout) })
               break
             case MeshDataCmd.Req:
               meta = message[MeshDataIndex.Meta]
@@ -90,10 +88,10 @@ describe('timeout', () => {
       a2b
     )
 
-    const portNum = nodeA.createPortStream('One', 'Two', {
+    const port1 = nodeA.createPortStream('One', 'Two', {
       readTimeout,
     })
-    pull(portNum, duplexOne, portNum)
+    pull(port1, duplexOne, port1)
   })
 
   it('two nodes with relayStream been interrupted during transmission', (done) => {
@@ -105,7 +103,7 @@ describe('timeout', () => {
         expect(nodeA.portStreamsLength).toBe(0)
         expect(nodeB.portStreamsLength).toBe(0)
         done()
-      }, 100)
+      }, 2e3)
     }
 
     const duplexOne = createDelayedDuplex([1, 2, 3], 500, (err, results) => {
@@ -137,9 +135,9 @@ describe('timeout', () => {
       a2b.sourceAbortable.abort()
     }, 750)
 
-    const portNum = nodeA.createPortStream('One', 'Two', {
+    const port1 = nodeA.createPortStream('One', 'Two', {
       readTimeout,
     })
-    pull(portNum, duplexOne, portNum)
+    pull(port1, duplexOne, port1)
   })
 })
