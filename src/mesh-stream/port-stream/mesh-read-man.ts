@@ -17,7 +17,7 @@ export interface MeshReadManOptions {
 export class MeshReadMan<Out> {
   private _buffer: Out[] = []
   private _requestList: MeshRead<Out>[] = []
-  private _readCallback: OnReceivedCallback | null = null
+  private _receivedCallback: OnReceivedCallback | null = null
   private _timerId: NodeJS.Timeout | null = null
   private _endOrError: pull.EndOrError = null
   private _abort: pull.EndOrError = null
@@ -50,7 +50,7 @@ export class MeshReadMan<Out> {
       return readCb(true)
     }
 
-    this._readCallback = readCb
+    this._receivedCallback = readCb
     this._buffer.push(data)
 
     if (this.drainAbort()) return
@@ -178,9 +178,9 @@ export class MeshReadMan<Out> {
       }
     }
     // should we read more data to fill the buffer?
-    if (this._buffer.length < DefaultWindowSize && this._readCallback) {
-      const t = this._readCallback
-      this._readCallback = null
+    if (this._buffer.length < DefaultWindowSize && this._receivedCallback) {
+      const t = this._receivedCallback
+      this._receivedCallback = null
       t()
     }
   }
