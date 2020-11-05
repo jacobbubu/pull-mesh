@@ -62,7 +62,7 @@ export class ReadMeshMan<In> {
       return
     }
 
-    if (this._buffer.length === 0 && !this._readMesh) {
+    if (this._buffer.length === 0 && !this._readMesh && this._readCallback) {
       this.createRequestToMesh(isOpen)
     }
   }
