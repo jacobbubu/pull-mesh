@@ -231,12 +231,9 @@ export class ReadMesh<In> {
   }
 
   sinkEnd(message: MeshCmdSinkEnd) {
-    if (message[MeshCmdSinkEndIndex.Id] === this._id) {
-      const end = message[MeshCmdSinkEndIndex.EndOrError]
-      this.respond(end)
-      return true
-    }
-    return false
+    const end = message[MeshCmdSinkEndIndex.EndOrError]
+    this.respond(end)
+    return true
   }
 
   abort(abort: pull.Abort = true) {
